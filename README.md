@@ -2,9 +2,8 @@
 
 # FeatherMorph Core (Community Continuation)
 
-![cover](./assets/cover.png)
-
-![Pic](https://cdn.modrinth.com/data/ydNDeiDX/images/9e71cabf14eb3c0ccaef48d7b81410d79dc04261.png)
+A server-side morph and disguise plugin for Paper, Purpur, and Folia.  
+一款適用於 Paper、Purpur 與 Folia 的伺服器端變身偽裝插件。
 
 [Client integration mod](https://modrinth.com/mod/feathermorphclient) | [Documents (WIP)](./docs)
 
