@@ -208,7 +208,7 @@ public class EvokerMorphSkill extends DelayedMorphSkill<NoOpConfiguration>
                 var vex = world.spawn(location, Vex.class, CreatureSpawnEvent.SpawnReason.CUSTOM);
                 vexCounter.addHolder(new MorphBukkitVexHolder(vex, player));
 
-                vex.setLimitedLifetimeTicks(20 * (30 + NmsRecord.ofPlayer(player).random.nextInt(90)));
+                vex.setLimitedLifetimeTicks(20 * (30 + java.util.concurrent.ThreadLocalRandom.current().nextInt(90)));
 
                 if (isLiving)
                     vex.setTarget((LivingEntity) targetEntity);

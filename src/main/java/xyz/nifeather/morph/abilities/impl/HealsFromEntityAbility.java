@@ -63,7 +63,9 @@ public class HealsFromEntityAbility extends MorphAbility<HealsFromEntityOption>
 
         if (cache != null) return cache;
 
-        cache = EntityType.byString(identifier).orElse(null);
+        var key = NamespacedKey.fromString(identifier);
+        var bukkitType = key == null ? null : org.bukkit.Registry.ENTITY_TYPE.get(key);
+        cache = bukkitType == null ? null : org.bukkit.craftbukkit.entity.CraftEntityType.bukkitToMinecraft(bukkitType);
         stringEntityTypeMap.put(identifier, cache);
 
         return cache;
@@ -118,7 +120,7 @@ public class HealsFromEntityAbility extends MorphAbility<HealsFromEntityOption>
 
                     var sources = nmsRecord.nmsWorld().damageSources();
 
-                    var source = beamTarget.getType().equals(EntityType.END_CRYSTAL)
+                    var source = beamTarget.getType().equals(org.bukkit.entity.EntityType.END_CRYSTAL)
                             ? sources.explosion(beamTarget, damager)
                             : new DamageSource(sources.magic().typeHolder(), beamTarget, damager);
 

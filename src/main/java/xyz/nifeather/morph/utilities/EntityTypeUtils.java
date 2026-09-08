@@ -82,8 +82,7 @@ public class EntityTypeUtils
 
         if (bukkitType == EntityType.UNKNOWN) return null;
 
-        var result = net.minecraft.world.entity.EntityType.byString(bukkitType.key().asString())
-                .orElse(null);
+        var result = org.bukkit.craftbukkit.entity.CraftEntityType.bukkitToMinecraft(bukkitType);
 
         nmsTypeMap.put(bukkitType, result);
 
@@ -96,8 +95,7 @@ public class EntityTypeUtils
         var cache = nmsClassMap.getOrDefault(type, null);
         if (cache != null) return cache;
 
-        var nmsType = net.minecraft.world.entity.EntityType.byString(type.key().asString())
-                .orElse(null);
+        var nmsType = getNmsType(type);
 
         if (nmsType == null)
         {

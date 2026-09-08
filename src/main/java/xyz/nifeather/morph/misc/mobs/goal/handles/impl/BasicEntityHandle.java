@@ -104,8 +104,32 @@ public abstract class BasicEntityHandle<M extends Mob> extends MorphPluginObject
         */
     }
 
+    private static final java.lang.reflect.Field goalSelectorField;
+    static
+    {
+        java.lang.reflect.Field field = null;
+        try
+        {
+            field = net.minecraft.world.entity.Mob.class.getDeclaredField("goalSelector");
+            field.setAccessible(true);
+        }
+        catch (Throwable ignored)
+        {
+        }
+        goalSelectorField = field;
+    }
+
     protected GoalSelector goalSelector(M mob)
     {
-        return ((CraftMob)mob).getHandle().goalSelector;
+        try
+        {
+            if (goalSelectorField != null)
+                return (GoalSelector) goalSelectorField.get(((CraftMob)mob).getHandle());
+        }
+        catch (Throwable t)
+        {
+            logger.error("Failed to access goalSelector for mob: " + mob, t);
+        }
+        return null;
     }
 }
