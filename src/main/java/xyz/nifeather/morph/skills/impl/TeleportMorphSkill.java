@@ -1,0 +1,104 @@
+package xyz.nifeather.morph.skills.impl;
+
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.sound.Sound;
+import org.bukkit.FluidCollisionMode;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
+import xyz.nifeather.morph.abilities.ISkillAbilityOptionHandler;
+import xyz.nifeather.morph.api.morphs.skills.SkillNames;
+import xyz.nifeather.morph.messages.MessageUtils;
+import xyz.nifeather.morph.messages.strings.SkillStrings;
+import xyz.nifeather.morph.misc.DisguiseState;
+import xyz.nifeather.morph.misc.ExecutionErrorException;
+import xyz.nifeather.morph.skills.MorphSkill;
+import xyz.nifeather.morph.skills.options.TeleportConfiguration;
+
+public class TeleportMorphSkill extends MorphSkill<TeleportConfiguration>
+{
+    @Override
+    public ISkillAbilityOptionHandler<TeleportConfiguration> optionHandler()
+    {
+        return TeleportConfiguration.OPTION_HANDLER;
+    }
+
+    @Override
+    public int executeSkill(Player player, DisguiseState state, TeleportConfiguration option) throws ExecutionErrorException
+    {
+        if (option == null)
+            throw ExecutionErrorException.forMethod("executeSkill")
+                    .withMessage("No option set for teleport skill")
+                    .create();
+
+        //目标方块
+        var targetBlock = player.getTargetBlockExact(
+                option.getMaxDistance(),
+                FluidCollisionMode.ALWAYS);
+
+        if (targetBlock == null
+                || targetBlock.getBlockData().getMaterial().isAir()
+                || targetBlock.getBlockData().getMaterial().equals(Material.WATER))
+        {
+            sendDenyMessageToPlayer(player, SkillStrings.targetNotSuitableString());
+
+            return 20;
+        }
+
+        //获取位置
+        var loc = targetBlock.getLocation();
+        var face = player.getTargetBlockFace(option.getMaxDistance());
+
+        var commonOffset = 0.5f;
+        var xOffset = 0f;
+        var zOffset = 0f;
+        var yOffset = 0f;
+
+        //获取位移并设置目的地
+        assert face != null;
+        xOffset = face.getModX();
+        zOffset = face.getModZ();
+        yOffset = face.getModY();
+
+        //目标X/Z + 0.5 + 从方块朝向获取的ModX/Z
+        loc.setX(loc.getX() + xOffset + commonOffset);
+        loc.setZ(loc.getZ() + zOffset + commonOffset);
+        loc.setY(loc.getY() + yOffset);
+
+        //设置眼睛方向
+        loc.setDirection(player.getEyeLocation().getDirection());
+
+        if (face == BlockFace.DOWN)
+        {
+            var box = player.getBoundingBox(); // state.getDisguiseWrapper().getBoundingBoxAt(loc.x(), loc.y(), loc.z());
+            var height = box.getHeight();
+            var traceResult = targetBlock.getWorld().rayTraceBlocks(loc, new Vector(0, -height, 0), height + 0.05d, FluidCollisionMode.NEVER, true);
+
+            if (traceResult == null || traceResult.getHitBlock() == null)
+                loc.setY(loc.getY() - player.getBoundingBox().getHeight() + 1);
+        }
+
+        //传送
+        playSoundToNearbyPlayers(player, 10,
+                Key.key("minecraft", "entity.enderman.teleport"), Sound.Source.HOSTILE);
+
+        player.teleportAsync(loc).thenRun(() ->
+        {
+            playSoundToNearbyPlayers(player, 10,
+                    Key.key("minecraft", "entity.enderman.teleport"), Sound.Source.HOSTILE);
+        });
+
+        //重设下落距离
+        player.setFallDistance(0);
+        return 0;
+    }
+
+    @Override
+    public @NotNull NamespacedKey getIdentifier()
+    {
+        return SkillNames.TELEPORT;
+    }
+}

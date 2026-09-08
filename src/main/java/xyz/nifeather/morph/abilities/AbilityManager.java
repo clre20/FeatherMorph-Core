@@ -1,0 +1,224 @@
+package xyz.nifeather.morph.abilities;
+
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectList;
+import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import xiamomc.pluginbase.Annotations.Initializer;
+import xiamomc.pluginbase.Annotations.Resolved;
+import xyz.nifeather.morph.MorphManager;
+import xyz.nifeather.morph.MorphPluginObject;
+import xyz.nifeather.morph.abilities.impl.*;
+import xyz.nifeather.morph.abilities.impl.dmgReduce.ReduceFallDamageAbility;
+import xyz.nifeather.morph.abilities.impl.dmgReduce.ReduceMagicDamageAbility;
+import xyz.nifeather.morph.abilities.impl.dmgReduce.ReduceWitherDamageAbility;
+import xyz.nifeather.morph.abilities.impl.onAttack.ExtraKnockbackAbility;
+import xyz.nifeather.morph.abilities.impl.onAttack.PotionOnAttackAbility;
+import xyz.nifeather.morph.abilities.impl.potion.*;
+import xyz.nifeather.morph.api.events.lifecycle.AbilitiesFinishedInitializeEvent;
+import xyz.nifeather.morph.misc.disguiseProperty.ParseErrorException;
+import xyz.nifeather.morph.storage.skill.ISkillAbilityOption;
+import xyz.nifeather.morph.storage.skill.SkillsConfigurationStoreNew;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+public class AbilityManager extends MorphPluginObject
+{
+    private final List<IAbility<?>> registedAbilities = new CopyOnWriteArrayList<>();
+
+    @Resolved
+    private SkillsConfigurationStoreNew store;
+
+    /**
+     * 注册一个被动技能
+     *
+     * @param ability 技能ID
+     * @return 操作是否成功
+     */
+    public boolean registerAbility(IAbility<?> ability)
+    {
+        //logger.info("Registering ability: " + ability.getIdentifier().asString());
+
+        if (registedAbilities.stream().anyMatch(a -> a.getIdentifier().equals(ability.getIdentifier())))
+        {
+            logger.error("Can't register ability: Another ability instance has already registered as " + ability.getIdentifier().asString() + "!");
+            return false;
+        }
+
+        registedAbilities.add(ability);
+
+        Bukkit.getPluginManager().registerEvents(ability, plugin);
+        return true;
+    }
+
+    /**
+     * 获取所有已注册的被动
+     *
+     * @return 被动技能列表
+     */
+    public List<IAbility<?>> getRegistedAbilities()
+    {
+        return new ObjectArrayList<>(registedAbilities);
+    }
+
+    /**
+     * 注册一批被动技能
+     *
+     * @param abilities ID列表
+     * @return 操作是否成功
+     */
+    public boolean registerAbilities(List<IAbility<?>> abilities)
+    {
+        var success = new AtomicBoolean(false);
+
+        abilities.forEach(a ->
+        {
+            if (!registerAbility(a))
+                success.set(false);
+        });
+
+        return success.get();
+    }
+
+    @Initializer
+    private void load()
+    {
+        registerAbilities(ObjectList.of(
+                new BreatheUnderWaterAbility(),
+                new BurnsUnderSunAbility(),
+                new FeatherFallingAbility(),
+                new FireResistanceAbility(),
+                new FlyAbility(),
+                new JumpBoostAbility(),
+                new NightVisionAbility(),
+                new NoFallDamageAbility(),
+                new ReduceFallDamageAbility(),
+                new ReduceMagicDamageAbility(),
+                new ReduceWitherDamageAbility(),
+                new SmallJumpBoostAbility(),
+                new SnowyAbility(),
+                new SpeedBoostAbility(),
+                new TakesDamageFromWaterAbility(),
+                new WardenLessAwareAbility(),
+                new WardenAbility(),
+                new ChatOverrideAbility(),
+                new BossbarAbility(),
+                new NoSweetBushDamageAbility(),
+                new AttributeModifyingAbility(),
+                new HealsFromEntityAbility(),
+                new ExtraKnockbackAbility(),
+                new DryOutInAirAbility(),
+                new PotionOnAttackAbility(),
+                new SpiderAbility(),
+                new ExtraAirAbility()
+        ));
+
+        Bukkit.getPluginManager().callEvent(new AbilitiesFinishedInitializeEvent(this));
+    }
+
+    @NotNull
+    public Map<NamespacedKey, ISkillAbilityOption> getOptionsFor(String disguiseIdentifier)
+    {
+        var configuration = store.get(disguiseIdentifier);
+        if (configuration == null) return new Object2ObjectOpenHashMap<>();
+
+        Map<NamespacedKey, ISkillAbilityOption> optionMap = new ConcurrentHashMap<>();
+        configuration.getAbilitiyIdentifiers().forEach(abilityIdString ->
+        {
+            var idKey = NamespacedKey.fromString(abilityIdString);
+
+            if (idKey == null)
+            {
+                logger.warn("Invalid ability ID: %s".formatted(abilityIdString));
+                return;
+            }
+
+            var abilityInstance = this.getAbility(idKey);
+            if (abilityInstance == null) return;
+
+            ISkillAbilityOption options = null;
+
+            try
+            {
+                options = configuration.readOptions(abilityInstance);
+            }
+            catch (ParseErrorException e)
+            {
+                logger.warn("Failed to parse ability configuration for '%s' under '%s'".formatted(abilityIdString, disguiseIdentifier), e);
+            }
+
+            if (options != null)
+                optionMap.put(idKey, options);
+            else
+                logger.warn("Null option for ability %s under %s, is everything correct?".formatted(abilityInstance.getIdentifier(), disguiseIdentifier));
+        });
+
+        return optionMap;
+    }
+
+    @Nullable
+    public IAbility<?> getAbility(@Nullable NamespacedKey abilityIdentifier)
+    {
+        if (abilityIdentifier == null) return null;
+
+        var val = registedAbilities.stream()
+                .filter(a -> a.getIdentifier().equals(abilityIdentifier)).findFirst().orElse(null);
+
+        if (val == null)
+            logger.warn("Unknown ability: " + abilityIdentifier.asString());
+
+        return val;
+    }
+
+    /**
+     * 为某个伪装ID获取被动技能
+     *
+     * @param disguiseIdentifier 伪装ID
+     * @return 被动技能列表
+     */
+    @NotNull
+    public List<IAbility<?>> getAbilitiesFor(String disguiseIdentifier)
+    {
+        return this.getAbilitiesFor(disguiseIdentifier, false);
+    }
+
+    /**
+     * @param disguiseIdentifier 目标伪装
+     * @param noFallback 是否要搜索命名空间的默认配置
+     */
+    @NotNull
+    public List<IAbility<?>> getAbilitiesFor(String disguiseIdentifier, boolean noFallback)
+    {
+        var configuration = store.get(disguiseIdentifier);
+
+        if (configuration != null)
+        {
+            List<IAbility<?>> abilities = new ObjectArrayList<>();
+            configuration.getAbilitiyIdentifiers().forEach(id ->
+            {
+                var instance = this.getAbility(NamespacedKey.fromString(id));
+                if (instance != null) abilities.add(instance);
+            });
+
+            return abilities;
+        }
+        else if (!noFallback)
+        {
+            var idSpilt = disguiseIdentifier.split(":", 2);
+            if (idSpilt.length < 1) return List.of();
+
+            var idNew = idSpilt[0] + ":" + MorphManager.disguiseFallbackName;
+
+            return getAbilitiesFor(idNew, true);
+        }
+
+        return List.of();
+    }
+}

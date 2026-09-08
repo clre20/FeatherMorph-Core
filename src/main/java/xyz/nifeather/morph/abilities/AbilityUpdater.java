@@ -1,0 +1,279 @@
+package xyz.nifeather.morph.abilities;
+
+import it.unimi.dsi.fastutil.Pair;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import it.unimi.dsi.fastutil.objects.ObjectBooleanMutablePair;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
+import xiamomc.pluginbase.Annotations.Initializer;
+import xiamomc.pluginbase.Bindables.Bindable;
+import xyz.nifeather.morph.MorphPluginObject;
+import xyz.nifeather.morph.config.ConfigOptions;
+import xyz.nifeather.morph.config.MorphConfigManager;
+import xyz.nifeather.morph.misc.DisguiseState;
+import xyz.nifeather.morph.misc.permissions.CommonPermissions;
+import xyz.nifeather.morph.storage.skill.IAbilityConfigLookup;
+import xyz.nifeather.morph.storage.skill.ISkillAbilityOption;
+import xyz.nifeather.morph.utilities.PermissionUtils;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
+
+public class AbilityUpdater extends MorphPluginObject implements IAbilityConfigLookup
+{
+    @NotNull
+    private final DisguiseState parentState;
+
+    private final List<IAbility<?>> pendingAbilities = Collections.synchronizedList(new ObjectArrayList<>());
+
+    // <Ability, Enabled?>
+    private final List<Pair<IAbility<?>, Boolean>> registeredAbilities = new CopyOnWriteArrayList<>();
+
+    private Bindable<Boolean> checkAbilityPermissions = new Bindable<>(true);
+
+    @Initializer
+    private void load(MorphConfigManager config)
+    {
+        this.checkAbilityPermissions = config.getBindable(ConfigOptions.DO_CHECK_ABILITY_PERMISSIONS);
+    }
+
+    public AbilityUpdater(@NotNull DisguiseState parentState)
+    {
+        this.parentState = parentState;
+    }
+
+    private Player player()
+    {
+        return parentState.getPlayer();
+    }
+
+    private void disableAbility(Pair<IAbility<?>, Boolean> pair, Player player)
+    {
+        pair.left().revokeFromPlayer(player, parentState);
+        pair.right(false);
+    }
+
+    private void enableAbility(Pair<IAbility<?>, Boolean> pair, Player player)
+    {
+        pair.left().applyToPlayer(player, parentState);
+        pair.right(true);
+    }
+
+    public void update()
+    {
+        List<IAbility<?>> pending = new ObjectArrayList<>();
+        var player = player();
+
+        synchronized (pendingAbilities)
+        {
+            pending.addAll(pendingAbilities);
+
+            if (!pending.isEmpty())
+            {
+                for (var ability : pending)
+                {
+                    var hasPermission = !checkAbilityPermissions.get() || hasPermissionFor(ability, parentState);
+                    var pair = new ObjectBooleanMutablePair<IAbility<?>>(ability, hasPermission);
+
+                    if (hasPermission)
+                        ability.applyToPlayer(player, parentState);
+
+                    registeredAbilities.add(pair);
+                }
+
+                this.pendingAbilities.clear();
+            }
+        }
+
+        for (var abilityPair : registeredAbilities)
+        {
+            var ability = abilityPair.left();
+            var enabled = abilityPair.right();
+
+            if (checkAbilityPermissions.get() && plugin.getCurrentTick() % 5 == 0)
+            {
+                boolean hasPermission = hasPermissionFor(ability, parentState);
+
+                if (hasPermission && !enabled)
+                {
+                    enableAbility(abilityPair, player);
+
+                    enabled = true;
+                }
+                else if (!hasPermission && enabled)
+                {
+                    disableAbility(abilityPair, player);
+
+                    enabled = false;
+                }
+            }
+            else if (!checkAbilityPermissions.get() && !enabled)
+            {
+                enableAbility(abilityPair, player);
+
+                enabled = true;
+            }
+
+            if (enabled)
+                ability.handle(player, parentState);
+        }
+    }
+
+    public enum OperationResult
+    {
+        SUCCESS,
+        FAIL_UNKNOWN,
+        FAIL_ALREADY_EXISTS,
+        FAIL_NOT_EXIST
+    }
+
+    public void reApplyAbility()
+    {
+        registeredAbilities.forEach(pair ->
+        {
+            if (pair.right())
+            {
+                pair.left().revokeFromPlayer(player(), parentState);
+                pair.left().applyToPlayer(player(), parentState);
+            }
+        });
+    }
+
+    public void onPlayerOffline()
+    {
+        registeredAbilities.forEach(pair ->
+        {
+            pair.left().revokeFromPlayer(player(), parentState);
+        });
+    }
+
+    public boolean containsAbility(NamespacedKey identifier)
+    {
+        return registeredAbilities.stream().anyMatch(pair -> pair.left().getIdentifier().equals(identifier));
+    }
+
+    @Unmodifiable
+    public List<IAbility<?>> getEnabledAbilities()
+    {
+        return registeredAbilities.stream().filter(Pair::right)
+                .map(Pair::left)
+                .collect(Collectors.toUnmodifiableList());
+    }
+
+    /**
+     * @return True if all success.
+     */
+    public boolean setAbilities(@NotNull List<IAbility<?>> abilities)
+    {
+        this.getEnabledAbilities().forEach(a -> a.revokeFromPlayer(player(), parentState));
+        this.registeredAbilities.clear();
+
+        return this.addAbilities(abilities);
+    }
+
+    @Nullable
+    public IAbility<?> getAbilityInstance(NamespacedKey identifier)
+    {
+        var optional = registeredAbilities.stream().filter(pair -> pair.left().getIdentifier().equals(identifier))
+                .findFirst();
+
+        return optional.map(Pair::left).orElse(null);
+    }
+
+    public OperationResult removeAbility(NamespacedKey targetIdentifier)
+    {
+        IAbility<?> ability = getAbilityInstance(targetIdentifier);
+
+        if (ability == null)
+            return OperationResult.FAIL_NOT_EXIST;
+
+        ability.revokeFromPlayer(player(), parentState);
+        registeredAbilities.removeIf(pair -> pair.left().equals(ability));
+
+        return OperationResult.SUCCESS;
+    }
+
+    /**
+     * @return True if all success.
+     */
+    public boolean addAbilities(IAbility<?>... abilities)
+    {
+        return addAbilities(Arrays.stream(abilities).toList());
+    }
+
+    /**
+     * @return True if all success.
+     */
+    public boolean addAbilities(List<IAbility<?>> abilities)
+    {
+        boolean success = true;
+
+        for (IAbility<?> ability : abilities)
+            success = success && (addAbility(ability) == OperationResult.SUCCESS);
+
+        return success;
+    }
+
+    public OperationResult addAbility(IAbility<?> ability)
+    {
+        synchronized (pendingAbilities)
+        {
+            if (pendingAbilities.stream().anyMatch(a -> a.getIdentifier().equals(ability.getIdentifier())))
+                return OperationResult.FAIL_ALREADY_EXISTS;
+
+            pendingAbilities.add(ability);
+        }
+
+        return OperationResult.SUCCESS;
+    }
+
+    @Unmodifiable
+    public List<IAbility<?>> getRegisteredAbilities()
+    {
+        return this.registeredAbilities.stream().map(Pair::left).collect(Collectors.toUnmodifiableList());
+    }
+
+    @Override
+    public void dispose()
+    {
+        getEnabledAbilities().forEach(a -> a.revokeFromPlayer(player(), parentState));
+        this.setAbilities(List.of());
+    }
+
+    public static boolean hasPermissionFor(IAbility<?> ability, DisguiseState state)
+    {
+        var singleAbilityPerm = CommonPermissions.abilityPermissionOf(ability.getIdentifier().asString(), state.getDisguiseIdentifier());
+        return PermissionUtils.hasPermission(state.getPlayer(), singleAbilityPerm, true);
+    }
+
+    //region IAbilityConfigLookup
+
+    private final Map<String, ISkillAbilityOption> abilityConfigMap = new ConcurrentHashMap<>();
+
+    @Override
+    @Nullable
+    public <X> X lookupAbilityConfig(String identifier, Class<X> expectedClass)
+    {
+        var val = abilityConfigMap.getOrDefault(identifier, null);
+        if (val == null) return null;
+
+        if (expectedClass.isInstance(val)) return (X) val;
+        else return null;
+    }
+
+    @Override
+    public void setAbilityConfig(String identifier, ISkillAbilityOption config)
+    {
+        abilityConfigMap.put(identifier, config);
+    }
+
+    //endregion IAbilityConfigLookup
+}

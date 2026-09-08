@@ -1,0 +1,174 @@
+package xyz.nifeather.morph.backends.server.renderer.network;
+
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.event.PacketListenerPriority;
+import xiamomc.pluginbase.Annotations.Initializer;
+import xyz.nifeather.morph.MorphPluginObject;
+import xyz.nifeather.morph.backends.server.renderer.network.listeners.*;
+
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class ProtocolHandler extends MorphPluginObject
+{
+    public ProtocolHandler()
+    {
+        registerRange(
+                new SpawnPacketHandler(),
+                new MetaPacketListener(),
+                new EquipmentPacketListener(),
+                new PlayerLookPacketListener(),
+                new SoundListener(),
+                new AnimationPacketListener(),
+                new AttributePacketListener()
+        );
+    }
+
+    private final List<ProtocolListener> listeners = new CopyOnWriteArrayList<>();
+
+    private void throwIfDisposed()
+    {
+        if (disposed)
+            throw new IllegalStateException(
+                    "This instance of ProtocolHandler(%s) is disposed and cannot be used."
+                            .formatted(this)
+            );
+    }
+
+    public boolean contains(ProtocolListener listener)
+    {
+        throwIfDisposed();
+
+        return contains(listener.getIdentifier());
+    }
+
+    public boolean contains(String id)
+    {
+        throwIfDisposed();
+
+        return listeners.stream().anyMatch(l -> l.getIdentifier().equalsIgnoreCase(id));
+    }
+
+    public boolean register(ProtocolListener listener)
+    {
+        throwIfDisposed();
+
+        if (this.contains(listener))
+            return false;
+
+        listeners.add(listener);
+
+        if (loadReady)
+        {
+            try
+            {
+                registerListenerToPacketManager(listener);
+            }
+            catch (Throwable t)
+            {
+                logger.error("Unable to register listener '%s': %s".formatted(
+                        listener.getIdentifier(), t.getMessage()
+                ));
+            }
+        }
+
+        return true;
+    }
+
+    public boolean registerRange(ProtocolListener... listeners)
+    {
+        throwIfDisposed();
+
+        boolean allSuccess = true;
+
+        for (ProtocolListener listener : listeners)
+        {
+            allSuccess = register(listener) && allSuccess;
+        }
+
+        return allSuccess;
+    }
+
+    public boolean unregister(ProtocolListener listener)
+    {
+        throwIfDisposed();
+
+        listeners.remove(listener);
+
+        try
+        {
+            unRegisterListenerFromPacketManager(listener);
+        }
+        catch (Throwable t)
+        {
+            logger.error("Error removing packet listener '%s': %s".formatted(
+                    listener.getIdentifier(), t.getMessage()
+            ));
+        }
+
+        return true;
+    }
+
+    private boolean loadReady;
+
+    @Initializer
+    private void load()
+    {
+        if (disposed) return;
+
+        for (var listener : listeners)
+        {
+            try
+            {
+                registerListenerToPacketManager(listener);
+            }
+            catch (Throwable t)
+            {
+                logger.error("Unable to register listener '%s': %s".formatted(
+                        listener.getIdentifier(), t.getMessage()
+                ));
+            }
+        }
+
+        loadReady = true;
+    }
+
+    private void registerListenerToPacketManager(ProtocolListener listener)
+    {
+        PacketEvents.getAPI().getEventManager().registerListener(listener, PacketListenerPriority.NORMAL);
+    }
+
+    private void unRegisterListenerFromPacketManager(ProtocolListener listener)
+    {
+        logger.error("Unregister listener from PacketEvents is not supported by FeatherMorph yet!");
+        //PacketEvents.getAPI().getEventManager().unregisterListener(listener);
+    }
+
+    private boolean disposed;
+
+    public boolean disposed()
+    {
+        return disposed;
+    }
+
+    @Override
+    public void dispose()
+    {
+        for (ProtocolListener listener : listeners)
+        {
+            try
+            {
+                unRegisterListenerFromPacketManager(listener);
+            }
+            catch (Throwable t)
+            {
+                logger.error("Error removing packet listener %s: %s".formatted(
+                        listener.getIdentifier(),
+                        t.getMessage()
+                ));
+            }
+        }
+
+        disposed = true;
+    }
+}

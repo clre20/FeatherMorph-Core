@@ -1,0 +1,39 @@
+package xyz.nifeather.morph.abilities.impl;
+
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
+import xyz.nifeather.morph.abilities.ISkillAbilityOptionHandler;
+import xyz.nifeather.morph.abilities.MorphAbility;
+import xyz.nifeather.morph.abilities.options.TakesDamageFromWaterOption;
+import xyz.nifeather.morph.api.morphs.abilities.AbilityNames;
+import xyz.nifeather.morph.misc.DisguiseState;
+
+public class TakesDamageFromWaterAbility extends MorphAbility<TakesDamageFromWaterOption>
+{
+    @Override
+    public @NotNull ISkillAbilityOptionHandler<TakesDamageFromWaterOption> optionHandler()
+    {
+        return TakesDamageFromWaterOption.OPTION_HANDLER;
+    }
+
+    @Override
+    public @NotNull NamespacedKey getIdentifier()
+    {
+        return AbilityNames.TAKES_DAMAGE_FROM_WATER;
+    }
+
+    @Override
+    public boolean handle(Player player, DisguiseState state)
+    {
+        if (player.isInWater() || player.isInRain())
+        {
+            var dmgOption = this.getOptionFor(state);
+
+            player.damage(dmgOption == null ? 1d : dmgOption.damageAmount);
+        }
+
+        return true;
+    }
+
+}
