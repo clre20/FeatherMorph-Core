@@ -7,6 +7,9 @@ public class VersionHandling
         if (versionString == null || versionString.equals("null") || versionString.isBlank())
             return VersionInfo.INVALID_VERSION;
 
+        if (versionString.startsWith("v") || versionString.startsWith("V"))
+            versionString = versionString.substring(1);
+
         var vers = versionString.split("-", 2);
 
         var strSpilt = vers[0].split("\\.");
