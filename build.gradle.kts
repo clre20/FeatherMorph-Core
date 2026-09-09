@@ -304,6 +304,9 @@ publishing {
 }
 
 java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }
     withSourcesJar()
 }
 
@@ -353,7 +356,7 @@ tasks.shadowJar {
         relocate("de.themoep.inventorygui", "xyz.nifeather.morph.shaded.inventorygui")
     }
 
-    archiveFileName = "feathermorph-${project.property("project_version")}-${project.property("mc_version")}-final.jar"
+    archiveFileName = "feathermorph-v${project.property("project_version")}-final.jar"
 }
 
 // https://stackoverflow.com/a/74848372

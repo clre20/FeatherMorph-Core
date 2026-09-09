@@ -96,6 +96,7 @@ public class DisguiseProperties
         var slimeMagmaProperties = new SlimeMagmaPropertyCollection();
         registerCollection(EntityType.SLIME, slimeMagmaProperties);
         registerCollection(EntityType.MAGMA_CUBE, slimeMagmaProperties);
+        registerCollection(EntityType.SULFUR_CUBE, slimeMagmaProperties);
 
         registerCollection(EntityType.SHULKER, new ShulkerPropertyCollection());
         registerCollection(EntityType.TRADER_LLAMA, new TraderLlamaPropertyCollection());

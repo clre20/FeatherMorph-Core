@@ -73,8 +73,8 @@ public class DefaultConfigGenerator
                         EntityType.SKELETON,
                         EntityType.STRAY,
                         EntityType.WITHER_SKELETON,
-                        EntityType.ZOMBIE_VILLAGER,
                         EntityType.BOGGED,
+                        EntityType.PARCHED,
 
                         EntityType.EVOKER,
                         EntityType.PILLAGER,
@@ -175,6 +175,11 @@ public class DefaultConfigGenerator
                 .setSkillIdentifier(SkillNames.EXPLODE)
                 .setSkillCooldown(80)
                 .appendOption(SkillNames.EXPLODE, ExplosionConfiguration.OPTION_HANDLER, new ExplosionConfiguration(true, 3, false, 30, "entity.creeper.primed"));
+
+        this.getConfiguration(EntityType.SULFUR_CUBE)
+                .setSkillIdentifier(SkillNames.EXPLODE)
+                .setSkillCooldown(80)
+                .appendOption(SkillNames.EXPLODE, ExplosionConfiguration.OPTION_HANDLER, new ExplosionConfiguration(true, 3, true, 30, "entity.tnt.primed"));
 
         this.getConfiguration(EntityType.ENDERMAN)
                 .setSkillIdentifier(SkillNames.TELEPORT)

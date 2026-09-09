@@ -52,6 +52,8 @@
     "minecraft:wandering_trader",
     "minecraft:wolf",
     "minecraft:zombie_horse",
-    "minecraft:copper_golem"
+    "minecraft:copper_golem",
+    "minecraft:nautilus",
+    "minecraft:sulfur_cube"
   ]
 }

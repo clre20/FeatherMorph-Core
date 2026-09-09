@@ -13,6 +13,7 @@ import xyz.nifeather.morph.backends.server.renderer.network.datawatcher.watchers
 import xyz.nifeather.morph.backends.server.renderer.network.datawatcher.watchers.types.llama.TraderLlamaWatcher;
 import xyz.nifeather.morph.backends.server.renderer.network.datawatcher.watchers.types.slimemagma.MagmaWatcher;
 import xyz.nifeather.morph.backends.server.renderer.network.datawatcher.watchers.types.slimemagma.SlimeWatcher;
+import xyz.nifeather.morph.backends.server.renderer.network.datawatcher.watchers.types.slimemagma.SulfurCubeWatcher;
 
 import java.util.Map;
 import java.util.function.Function;
@@ -36,6 +37,7 @@ public class WatcherIndex
         setTypeWatcher(EntityType.ARMOR_STAND, ArmorStandWatcher::new);
         setTypeWatcher(EntityType.SLIME, SlimeWatcher::new);
         setTypeWatcher(EntityType.MAGMA_CUBE, MagmaWatcher::new);
+        setTypeWatcher(EntityType.SULFUR_CUBE, SulfurCubeWatcher::new);
         setTypeWatcher(EntityType.GHAST, GhastWatcher::new);
 
         setTypeWatcher(EntityType.HORSE, HorseWatcher::new);
@@ -44,6 +46,7 @@ public class WatcherIndex
         setTypeWatcher(EntityType.DONKEY, DonkeyWatcher::new);
 
         setTypeWatcher(EntityType.CAMEL, p -> new AbstractHorseWatcher(p, EntityType.CAMEL));
+        setTypeWatcher(EntityType.CAMEL_HUSK, p -> new AbstractHorseWatcher(p, EntityType.CAMEL_HUSK));
 
         setTypeWatcher(EntityType.LLAMA, LlamaWatcher::new);
         setTypeWatcher(EntityType.TRADER_LLAMA, TraderLlamaWatcher::new);

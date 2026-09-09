@@ -1,7 +1,9 @@
 package xyz.nifeather.morph.updates;
 
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -105,40 +107,49 @@ public class UpdateHandler extends MorphPluginObject
 
         try
         {
-            var urlString = "https://api.modrinth.com"
-                    + "/v2/project/feathermorph/version"
-                    + "?"
-                    + "game_versions=[\"%s\"]";
-
-            urlString = urlString.formatted(Bukkit.getMinecraftVersion())
-                    .replace("[", "%5B") // Make URI happy
-                    .replace("]", "%5D")
-                    .replace("\"", "%22")
-                    .replace(" ", "%20");
-
-            var uri = new URI(urlString);
-
-            var request = HttpRequest.newBuilder()
-                    .GET()
-                    .uri(uri)
-                    .timeout(Duration.ofSeconds(10))
-                    .header("User-Agent", "feathermorph")
+            httpClient = HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.ALWAYS)
                     .build();
 
-            httpClient = HttpClient.newBuilder()
-                            .followRedirects(HttpClient.Redirect.ALWAYS)
-                            .build();
+            // 1. Check GitHub Releases
+            var releasesUri = new URI("https://api.github.com/repos/clre20/FeatherMorph-Core/releases");
+            var request = HttpRequest.newBuilder()
+                    .GET()
+                    .uri(releasesUri)
+                    .timeout(Duration.ofSeconds(10))
+                    .header("User-Agent", "FeatherMorph-UpdateChecker")
+                    .header("Accept", "application/vnd.github.v3+json")
+                    .build();
 
             var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200)
-            {
-                logger.error("Failed to check update: Server returned HTTP code {}", response.statusCode());
-                logger.error("Server response: {}", response.body());
+            String responseBody = response.body();
+            boolean hasReleases = response.statusCode() == 200 && !responseBody.trim().equals("[]");
 
-                return CheckResult.FAIL;
+            // 2. If releases is empty, fallback to GitHub Tags
+            if (!hasReleases)
+            {
+                var tagsUri = new URI("https://api.github.com/repos/clre20/FeatherMorph-Core/tags");
+                var tagsReq = HttpRequest.newBuilder()
+                        .GET()
+                        .uri(tagsUri)
+                        .timeout(Duration.ofSeconds(10))
+                        .header("User-Agent", "FeatherMorph-UpdateChecker")
+                        .header("Accept", "application/vnd.github.v3+json")
+                        .build();
+
+                var tagsResp = httpClient.send(tagsReq, HttpResponse.BodyHandlers.ofString());
+                if (tagsResp.statusCode() == 200)
+                {
+                    responseBody = tagsResp.body();
+                }
+                else if (response.statusCode() != 200)
+                {
+                    logger.warn("Failed to check update: GitHub returned HTTP code {}", response.statusCode());
+                    return CheckResult.FAIL;
+                }
             }
 
-            return this.onUpdateReqFinish(response.body(), reqId, sendMessages, forwardTarget);
+            return this.onUpdateReqFinish(responseBody, reqId, sendMessages, forwardTarget);
         }
         catch (Throwable t)
         {
@@ -162,67 +173,82 @@ public class UpdateHandler extends MorphPluginObject
     }
 
     private CheckResult onUpdateReqFinish(String responseStr, int reqId,
-                                                       boolean sendMessages,
-                                                       @Nullable CommandSender forwardTarget)
+                                          boolean sendMessages,
+                                          @Nullable CommandSender forwardTarget)
     {
         if (this.requestId.get() != reqId)
             return CheckResult.FAIL;
 
         try
         {
-            // 反序列化为Map
-            // 之后看情况再考虑要不要反序列化成一个类
-            var gson = new GsonBuilder().create();
-            var versionList = gson.fromJson(responseStr, new TypeToken<ArrayList<Map<?, ?>>>(){});
-            var metaList = new ObjectArrayList<SingleUpdateInfoMeta>();
-            for (var map : versionList)
-                metaList.add(SingleUpdateInfoMeta.fromMap(map));
-
-            // Setup lookup brand here so that we don't create String every time we filter a SingleUpdateInfoMeta
-            // I'm not using `Bukkit.getName()` because this now can return downstream implements like Lophine, Luminol, Leaves, etc.
-            String lookupBrand = FoliaThreadUtils.isFolia() ? "Folia" : "Paper";
-            var matchMeta = metaList.stream()
-                    .filter(m ->
-                    {
-                        var supportedLoaders = m.supportedLoaders;
-                        if (supportedLoaders == null) return false;
-
-                        var isRelease = "Release".equalsIgnoreCase(m.versionType);
-                        var loaderMatch = supportedLoaders.stream().anyMatch(s -> s.equalsIgnoreCase(lookupBrand));
-
-                        return isRelease && loaderMatch;
-                    }).findFirst().orElse(null);
-
-            if (matchMeta == null)
+            var jsonElement = JsonParser.parseString(responseStr);
+            if (!jsonElement.isJsonArray())
             {
-                logger.error("Unable to check update: This version of Minecraft is not listed yet, or your server '%s' is not supported"
-                        .formatted(Bukkit.getName()));
-
-                return CheckResult.NOT_LISTED_OR_UNSUPPORTED;
-            }
-
-            var currentVersion = VersionHandling.toVersionInfo(plugin.getPluginMeta().getVersion());
-            var latestVersion = VersionHandling.toVersionInfo(matchMeta.versionNumber);
-
-            if (latestVersion.isInvalid())
-            {
-                logger.error("Null version number from response: " + gson.toJson(matchMeta));
+                logger.warn("Invalid GitHub response format when checking updates.");
                 return CheckResult.FAIL;
             }
 
-            var compare = currentVersion.compare(latestVersion);
+            var jsonArray = jsonElement.getAsJsonArray();
+            if (jsonArray.isEmpty())
+            {
+                logger.info("No releases or tags found on GitHub repository clre20/FeatherMorph-Core.");
+                return CheckResult.ALREADY_LATEST;
+            }
+
+            var currentVersion = VersionHandling.toVersionInfo(plugin.getPluginMeta().getVersion());
+            VersionHandling.VersionInfo latestMatchingVersion = null;
+            String latestReleaseUrl = "https://github.com/clre20/FeatherMorph-Core/releases";
+
+            for (var elem : jsonArray)
+            {
+                if (!elem.isJsonObject()) continue;
+                var obj = elem.getAsJsonObject();
+
+                if (obj.has("draft") && obj.get("draft").getAsBoolean())
+                    continue;
+
+                String tag = null;
+                if (obj.has("tag_name") && !obj.get("tag_name").isJsonNull())
+                    tag = obj.get("tag_name").getAsString();
+                else if (obj.has("name") && !obj.get("name").isJsonNull())
+                    tag = obj.get("name").getAsString();
+
+                if (tag == null || tag.isBlank())
+                    continue;
+
+                var ver = VersionHandling.toVersionInfo(tag);
+                if (ver.isInvalid())
+                    continue;
+
+                // Match same major series if currentVersion has a valid major (e.g. 261.x)
+                if (currentVersion.major() > 0 && ver.major() != currentVersion.major())
+                    continue;
+
+                if (latestMatchingVersion == null || latestMatchingVersion.compare(ver) == VersionHandling.CompareResult.INPUT_NEWER)
+                {
+                    latestMatchingVersion = ver;
+                    if (obj.has("html_url") && !obj.get("html_url").isJsonNull())
+                        latestReleaseUrl = obj.get("html_url").getAsString();
+                }
+            }
+
+            if (latestMatchingVersion == null)
+            {
+                logger.info("Already on the latest version ({}) for major {}.", currentVersion, currentVersion.major());
+                return CheckResult.ALREADY_LATEST;
+            }
+
+            var compare = currentVersion.compare(latestMatchingVersion);
 
             if (compare == VersionHandling.CompareResult.EQUAL)
             {
-                logger.info("Already on the latest version for " + Bukkit.getMinecraftVersion());
-
+                logger.info("Already on the latest version: {}", currentVersion);
                 return CheckResult.ALREADY_LATEST;
             }
 
             if (compare == VersionHandling.CompareResult.INPUT_OLDER)
             {
-                logger.info("Your version is newer than released for %s!".formatted(Bukkit.getMinecraftVersion()));
-
+                logger.info("Your version ({}) is newer than released ({})!", currentVersion, latestMatchingVersion);
                 return CheckResult.CURRENT_IS_NEWER;
             }
 
@@ -252,10 +278,10 @@ public class UpdateHandler extends MorphPluginObject
 
             this.msgPrimary = UpdateStrings.newVersionAvailable()
                     .resolve("current", currentVersion.toString())
-                    .resolve("origin", latestVersion.toString());
+                    .resolve("origin", latestMatchingVersion.toString());
 
             this.msgSecondary = UpdateStrings.update_here()
-                    .resolve("url", "https://modrinth.com/plugin/feathermorph");
+                    .resolve("url", latestReleaseUrl);
 
             this.updateAvailable = true;
 
@@ -270,7 +296,6 @@ public class UpdateHandler extends MorphPluginObject
         catch (Throwable t)
         {
             logger.error("Error occurred while processing response", t);
-
             return CheckResult.FAIL;
         }
     }
