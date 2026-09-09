@@ -179,7 +179,8 @@ public class DefaultConfigGenerator
         this.getConfiguration(EntityType.SULFUR_CUBE)
                 .setSkillIdentifier(SkillNames.EXPLODE)
                 .setSkillCooldown(80)
-                .appendOption(SkillNames.EXPLODE, ExplosionConfiguration.OPTION_HANDLER, new ExplosionConfiguration(true, 3, true, 30, "entity.tnt.primed"));
+                .appendOption(SkillNames.EXPLODE, ExplosionConfiguration.OPTION_HANDLER, new ExplosionConfiguration(true, 3, true, 30, "entity.tnt.primed"))
+                .addAbility(AbilityNames.SULFUR_CUBE_PHYSICS);
 
         this.getConfiguration(EntityType.ENDERMAN)
                 .setSkillIdentifier(SkillNames.TELEPORT)

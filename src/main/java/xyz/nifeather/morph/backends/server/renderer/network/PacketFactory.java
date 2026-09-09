@@ -76,6 +76,22 @@ public class PacketFactory extends MorphPluginObject
                 ? watcher.readEntryOrDefault(CustomEntries.EQUIPMENT, DisguiseEquipment.empty())
                 : DisguiseEquipment.copy(player.getEquipment());
 
+        if (watcher.getEntityType() == org.bukkit.entity.EntityType.SULFUR_CUBE)
+        {
+            var item = equipment.getItem(org.bukkit.inventory.EquipmentSlot.HAND);
+            boolean swallowable = xyz.nifeather.morph.misc.sulfurcube.CubeArchetype.isSwallowable(item);
+            var list = new ObjectArrayList<Equipment>();
+            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.BODY,
+                    swallowable ? io.github.retrooper.packetevents.util.SpigotConversionUtil.fromBukkitItemStack(item) : ProtocolEquipment.peAir));
+            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.MAIN_HAND, ProtocolEquipment.peAir));
+            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.OFF_HAND, ProtocolEquipment.peAir));
+            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.HELMET, ProtocolEquipment.peAir));
+            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.CHEST_PLATE, ProtocolEquipment.peAir));
+            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.LEGGINGS, ProtocolEquipment.peAir));
+            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.BOOTS, ProtocolEquipment.peAir));
+            return list;
+        }
+
         return ProtocolEquipment.toPEEquipmentList(equipment);
     }
 

@@ -46,4 +46,5 @@ public class AbilityNames
     public static final NamespacedKey REDUCES_FALL_DAMAGE = new NamespacedKey(nameSpace, "reduce_fall_damage");
     public static final NamespacedKey REDUCES_MAGIC_DAMAGE = new NamespacedKey(nameSpace, "reduce_magic_damage");
     public static final NamespacedKey REDUCES_WITHER_DAMAGE = new NamespacedKey(nameSpace, "reduce_wither_damage");
+    public static final NamespacedKey SULFUR_CUBE_PHYSICS = new NamespacedKey(nameSpace, "sulfur_cube_physics");
 }

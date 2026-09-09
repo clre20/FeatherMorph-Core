@@ -291,7 +291,7 @@ public class EntityTypeUtils
 
     public static Set<EntityType> hasJumpBoost()
     {
-        return ObjectSet.of(EntityType.MAGMA_CUBE, EntityType.SULFUR_CUBE);
+        return Set.of(EntityType.MAGMA_CUBE);
     }
 
     public static Set<EntityType> hasSmallJumpBoost()

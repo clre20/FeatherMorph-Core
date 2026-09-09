@@ -63,6 +63,14 @@ public class EquipmentPacketListener extends ProtocolListener
         if (watcher == null)
             return;
 
+        if (watcher.getEntityType() == org.bukkit.entity.EntityType.SULFUR_CUBE)
+        {
+            event.markForReEncode(true);
+            var equipments = PacketFactory.getPacketeventsEquipments(sourcePlayer, watcher);
+            packet.setEquipment(equipments);
+            return;
+        }
+
         if (!watcher.readEntryOrDefault(CustomEntries.DISPLAY_FAKE_EQUIPMENT, false))
         {
             alreadyFake.remove(sourcePlayer);
