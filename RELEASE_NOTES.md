@@ -52,8 +52,8 @@
 ---
 
 ### 📥 安裝說明 / Installation
-1. 將 `feathermorph-v261.0.1-26.1.2-final.jar` 放入伺服器的 `plugins/` 目錄。  
-   *Place `feathermorph-v261.0.1-26.1.2-final.jar` into your server's `plugins/` folder.*
+1. 將 `feathermorph-v261.0.1-final.jar` 放入伺服器的 `plugins/` 目錄。  
+   *Place `feathermorph-v261.0.1-final.jar` into your server's `plugins/` folder.*
 2. 確保伺服器已安裝 **PacketEvents 2.12.0+**。  
    *Ensure **PacketEvents 2.12.0+** is installed on your server.*
 3. 重啟伺服器即可。  
