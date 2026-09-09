@@ -27,6 +27,8 @@
   *PacketEvents Pre-check & Robustness*: Added check for PacketEvents plugin availability before initializing ServerBackend, gracefully warning and falling back without throwing reflection errors.
 - 🏷️ **版本字串相容性優化**：優化 `VersionHandling` 解析邏輯，支援帶有 `v` 前綴之版本號。  
   *Version String Parsing*: Enhanced `VersionHandling` to support version tags with `v` prefix.
+- 🔄 **遷移至 GitHub Releases 更新檢查**：將更新檢查來源從原作者已停止維護的 Modrinth 遷移至 `clre20/FeatherMorph-Core` 的 GitHub Releases，支援自動偵測與提示最新發布版本。  
+  *GitHub Releases Update Checker*: Migrated update checker from the archived Modrinth project to GitHub Releases on `clre20/FeatherMorph-Core`.
 
 ---
 

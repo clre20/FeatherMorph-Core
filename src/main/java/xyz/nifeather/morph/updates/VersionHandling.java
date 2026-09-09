@@ -44,6 +44,9 @@ public class VersionHandling
         @Override
         public String toString()
         {
+            if ("release".equalsIgnoreCase(channel))
+                return "%s.%s.%s".formatted(major, minor, patch);
+
             return "%s.%s.%s-%s".formatted(major, minor, patch, channel);
         }
 

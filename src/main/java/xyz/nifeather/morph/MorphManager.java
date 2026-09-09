@@ -238,7 +238,7 @@ public class MorphManager extends MorphPluginObject implements IManagePlayerData
             logger.error("Unable to initialize ServerBackend as our disguise backend", t);
             logger.error("Using default backend (%s), displaying disguises at the server side will not be supported this run."
                     .formatted(defaultBackend.getIdentifier()));
-            logger.error("Please consider reporting this issue to our GitHub: https://github.com/MATRIX-feather/FeatherMorph/issues");
+            logger.error("Please consider reporting this issue to our GitHub: https://github.com/clre20/FeatherMorph-Core/issues");
         }
     }
 
