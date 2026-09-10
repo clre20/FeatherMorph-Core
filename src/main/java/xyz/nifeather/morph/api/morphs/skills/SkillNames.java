@@ -32,4 +32,6 @@ public class SkillNames
     public static final NamespacedKey NONE = new NamespacedKey(nameSpace, "none");
 
     public static final NamespacedKey DASH = new NamespacedKey(nameSpace, "dash");
+
+    public static final NamespacedKey SULFUR_CUBE = new NamespacedKey(nameSpace, "sulfur_cube");
 }

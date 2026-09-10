@@ -72,6 +72,7 @@ public class PropertyNames
     public static final String SHULKER_COLOR = "shulker/color";
 
     public static final String SLIME_MAGMA_SIZE = "slime_magma/size";
+    public static final String SULFUR_CUBE_SIZE = "sulfur_cube/size";
 
     public static final String SNOW_GOLEM_HAS_PUMPKIN = "snow_golem/pumpkin";
 

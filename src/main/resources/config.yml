@@ -313,5 +313,10 @@ root:
   # Enable debug output for FeatherMorph?
   debug_output: false
 
+  # Sulfur cube options
+  sulfur_cube:
+    # Whether sulfur cube TNT explosion destroys blocks (default: false, only damages entities)
+    tnt_breaks_blocks: false
+
   # Do not touch unless you know what you're doing!
   version: 48

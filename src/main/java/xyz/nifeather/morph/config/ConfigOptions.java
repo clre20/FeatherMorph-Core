@@ -429,4 +429,9 @@ public class ConfigOptions
     {
         return ConfigNode.create().append("world_option");
     }
+
+    public static final ConfigOption<Boolean> SULFUR_CUBE_TNT_BREAKS_BLOCKS = ConfigOption.builder(Boolean.class)
+            .node(ConfigNode.create().append("sulfur_cube").append("tnt_breaks_blocks"))
+            .defaultValue(false)
+            .build();
 }

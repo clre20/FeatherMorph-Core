@@ -8,6 +8,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEn
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.ItemStack;
 import xyz.nifeather.morph.FeatherMorphMain;
 import xyz.nifeather.morph.MorphPluginObject;
 import xyz.nifeather.morph.backends.server.renderer.network.datawatcher.watchers.SingleWatcher;
@@ -78,11 +79,31 @@ public class PacketFactory extends MorphPluginObject
 
         if (watcher.getEntityType() == org.bukkit.entity.EntityType.SULFUR_CUBE)
         {
-            var item = equipment.getItem(org.bukkit.inventory.EquipmentSlot.HAND);
+            ItemStack item;
+            if (watcher instanceof xyz.nifeather.morph.backends.server.renderer.network.datawatcher.watchers.types.slimemagma.SulfurCubeWatcher scw
+                    && scw.getCurrentSwallowedItem() != null && !shouldDisplayFakeEquip)
+            {
+                item = scw.getCurrentSwallowedItem();
+            }
+            else
+            {
+                var offhand = equipment.getItem(org.bukkit.inventory.EquipmentSlot.OFF_HAND);
+                if (xyz.nifeather.morph.misc.sulfurcube.CubeArchetype.isSwallowable(offhand))
+                {
+                    item = offhand;
+                }
+                else
+                {
+                    item = equipment.getItem(org.bukkit.inventory.EquipmentSlot.HAND);
+                }
+            }
+
             boolean swallowable = xyz.nifeather.morph.misc.sulfurcube.CubeArchetype.isSwallowable(item);
+            ItemStack displayItem = (swallowable && item != null) ? item.asOne() : null;
+
             var list = new ObjectArrayList<Equipment>();
             list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.BODY,
-                    swallowable ? io.github.retrooper.packetevents.util.SpigotConversionUtil.fromBukkitItemStack(item) : ProtocolEquipment.peAir));
+                    displayItem != null ? io.github.retrooper.packetevents.util.SpigotConversionUtil.fromBukkitItemStack(displayItem) : ProtocolEquipment.peAir));
             list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.MAIN_HAND, ProtocolEquipment.peAir));
             list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.OFF_HAND, ProtocolEquipment.peAir));
             list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.HELMET, ProtocolEquipment.peAir));

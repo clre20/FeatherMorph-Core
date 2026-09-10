@@ -177,9 +177,8 @@ public class DefaultConfigGenerator
                 .appendOption(SkillNames.EXPLODE, ExplosionConfiguration.OPTION_HANDLER, new ExplosionConfiguration(true, 3, false, 30, "entity.creeper.primed"));
 
         this.getConfiguration(EntityType.SULFUR_CUBE)
-                .setSkillIdentifier(SkillNames.EXPLODE)
-                .setSkillCooldown(80)
-                .appendOption(SkillNames.EXPLODE, ExplosionConfiguration.OPTION_HANDLER, new ExplosionConfiguration(true, 3, true, 30, "entity.tnt.primed"))
+                .setSkillIdentifier(SkillNames.SULFUR_CUBE)
+                .setSkillCooldown(60)
                 .addAbility(AbilityNames.SULFUR_CUBE_PHYSICS);
 
         this.getConfiguration(EntityType.ENDERMAN)
