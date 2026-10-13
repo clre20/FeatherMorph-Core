@@ -20,14 +20,15 @@ public abstract class ProtocolListener extends MorphPluginObject implements Pack
         return PacketEvents.getAPI().getPlayerManager();
     }
 
+    /**
+     * 获取实体ID对应的、已注册伪装的玩家
+     * @apiNote 性能优化：之前每个数据包都会复制一次所有在线玩家列表并线性查找，
+     *          现在只在已伪装的玩家中查找（所有调用方都只处理已注册 Watcher 的玩家，因此结果一致）
+     */
     @Nullable
     protected Player getPlayerFrom(int id)
     {
-        return featherMorph().getPlatform().onlinePlayersNative()
-                .stream()
-                .filter(p -> p.getEntityId() == id)
-                .findFirst()
-                .orElse(null);
+        return registry.findPlayerByEntityId(id);
     }
 
     @Resolved(shouldSolveImmediately = true)

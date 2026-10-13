@@ -40,8 +40,10 @@ import xyz.nifeather.morph.platform.impl.paper.PaperPlatform;
 import xyz.nifeather.morph.skills.SkillManager;
 import xyz.nifeather.morph.storage.skill.SkillsConfigurationStoreNew;
 import xyz.nifeather.morph.updates.UpdateHandler;
+import xyz.nifeather.morph.utilities.AsyncFileWriter;
 import xyz.nifeather.morph.utilities.FoliaThreadUtils;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -384,6 +386,9 @@ public final class FeatherMorphMain extends XiaMoJavaPlugin
 
             if (mirrorExecutorHub != null)
                 mirrorExecutorHub.pushToLoggingBase();
+
+            // 等待所有异步磁盘写入完成，确保关服/重载时数据已落盘
+            AsyncFileWriter.flush(Duration.ofSeconds(30));
 
             if (instanceService != null)
                 instanceService.onDisable();

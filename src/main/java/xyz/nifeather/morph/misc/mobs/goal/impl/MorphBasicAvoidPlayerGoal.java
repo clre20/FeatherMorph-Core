@@ -1,6 +1,7 @@
 package xyz.nifeather.morph.misc.mobs.goal.impl;
 
 import com.destroystokyo.paper.entity.Pathfinder;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.util.DefaultRandomPos;
@@ -13,10 +14,12 @@ import org.bukkit.entity.*;
 import org.jetbrains.annotations.Nullable;
 import xyz.nifeather.morph.MorphManager;
 import xyz.nifeather.morph.RevealingHandler;
+import xyz.nifeather.morph.misc.NmsRecord;
 import xyz.nifeather.morph.utilities.EntityTypeUtils;
 import xyz.nifeather.morph.utilities.FoliaThreadUtils;
 
 import java.util.EnumSet;
+import java.util.List;
 
 /**
  * 一定程度上复刻了 NMS 中的 {@link net.minecraft.world.entity.ai.goal.AvoidEntityGoal}
@@ -74,17 +77,50 @@ public abstract class MorphBasicAvoidPlayerGoal<M extends Mob> extends Goal
     @Nullable
     private Entity findEntityToAvoid()
     {
-        var trackingDistance = (mob.getBoundingBox().getWidthX() / 2d) + detectDistance;
-        var nearbyPlayers = mob.getNearbyEntities(trackingDistance, 3, trackingDistance)
-                .stream().filter(e -> e instanceof Player && FoliaThreadUtils.isTickThreadFor(e))
-                .map(e -> (Player) e)
-                .toList();
+        boolean avoidPlayerByDefault = mobPanicFromPlayerByDefault();
+
+        // 性能优化：如果此生物默认不躲避玩家，且没有任何玩家处于伪装中，那么无需进行任何查找
+        if (!avoidPlayerByDefault && morphManager.noActiveDisguises())
+            return null;
+
+        var nmsMob = ((CraftMob) mob).getHandle();
+        var trackingDistance = (nmsMob.getBbWidth() / 2d) + detectDistance;
+        var searchBox = nmsMob.getBoundingBox().inflate(trackingDistance, 3, trackingDistance);
+
+        List<Player> nearbyPlayers = new ObjectArrayList<>();
+
+        if (avoidPlayerByDefault)
+        {
+            // 只查找玩家，而不是像 getNearbyEntities 那样遍历范围内的所有实体并创建 Bukkit 包装
+            for (var nmsPlayer : nmsMob.level().getEntitiesOfClass(net.minecraft.world.entity.player.Player.class, searchBox))
+            {
+                if (nmsPlayer.getBukkitEntity() instanceof Player bukkitPlayer && FoliaThreadUtils.isTickThreadFor(bukkitPlayer))
+                    nearbyPlayers.add(bukkitPlayer);
+            }
+        }
+        else
+        {
+            // 此生物只会躲避特定伪装，因此只需要遍历伪装中的玩家
+            var mobWorld = mob.getWorld();
+            for (var state : morphManager.activeDisguisesView())
+            {
+                if (state.disposed()) continue;
+
+                var candidate = state.getPlayer();
+                if (!candidate.isOnline() || !FoliaThreadUtils.isTickThreadFor(candidate)) continue;
+                if (!mobWorld.equals(candidate.getWorld())) continue;
+
+                if (NmsRecord.ofPlayer(candidate).getBoundingBox().intersects(searchBox))
+                    nearbyPlayers.add(candidate);
+            }
+        }
+
+        if (nearbyPlayers.isEmpty())
+            return null;
 
         Entity found = null;
         double currentDistance = Double.MAX_VALUE;
         var mobLocation = mob.getLocation();
-
-        boolean avoidPlayerByDefault = mobPanicFromPlayerByDefault();
 
         for (Player player : nearbyPlayers)
         {
@@ -93,7 +129,7 @@ public abstract class MorphBasicAvoidPlayerGoal<M extends Mob> extends Goal
                 continue;
 
             // Since we are in the same region, it should be safe to compare directly...
-            var distance = player.getLocation().distance(mobLocation);
+            var distance = player.getLocation().distanceSquared(mobLocation);
             if (distance > currentDistance)
                 continue;
 
@@ -175,7 +211,8 @@ public abstract class MorphBasicAvoidPlayerGoal<M extends Mob> extends Goal
             return;
 
         var pathfinder = mob.getPathfinder();
-        if (mobLocation.distance(avoidingLocation) < 49)
+        // 与原版 AvoidEntityGoal#tick() 一致：distanceToSqr < 49 (即7格内) 时疾跑
+        if (mobLocation.distanceSquared(avoidingLocation) < 49)
             pathfinder.moveTo(path, sprintSpeed);
         else
             pathfinder.moveTo(path, walkSpeed);

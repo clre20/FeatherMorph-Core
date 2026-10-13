@@ -69,18 +69,19 @@ public class AbilityUpdater extends MorphPluginObject implements IAbilityConfigL
 
     public void update()
     {
-        List<IAbility<?>> pending = new ObjectArrayList<>();
         var player = player();
+        var checkPermissions = checkAbilityPermissions.get();
 
-        synchronized (pendingAbilities)
+        // 性能优化：绝大多数tick里都没有待添加的能力，此时不要分配新列表或进入同步块
+        if (!pendingAbilities.isEmpty())
         {
-            pending.addAll(pendingAbilities);
-
-            if (!pending.isEmpty())
+            synchronized (pendingAbilities)
             {
+                List<IAbility<?>> pending = new ObjectArrayList<>(pendingAbilities);
+
                 for (var ability : pending)
                 {
-                    var hasPermission = !checkAbilityPermissions.get() || hasPermissionFor(ability, parentState);
+                    var hasPermission = !checkPermissions || hasPermissionFor(ability, parentState);
                     var pair = new ObjectBooleanMutablePair<IAbility<?>>(ability, hasPermission);
 
                     if (hasPermission)
@@ -93,12 +94,14 @@ public class AbilityUpdater extends MorphPluginObject implements IAbilityConfigL
             }
         }
 
+        var recheckPermissions = checkPermissions && plugin.getCurrentTick() % 5 == 0;
+
         for (var abilityPair : registeredAbilities)
         {
             var ability = abilityPair.left();
             var enabled = abilityPair.right();
 
-            if (checkAbilityPermissions.get() && plugin.getCurrentTick() % 5 == 0)
+            if (recheckPermissions)
             {
                 boolean hasPermission = hasPermissionFor(ability, parentState);
 
@@ -115,7 +118,7 @@ public class AbilityUpdater extends MorphPluginObject implements IAbilityConfigL
                     enabled = false;
                 }
             }
-            else if (!checkAbilityPermissions.get() && !enabled)
+            else if (!checkPermissions && !enabled)
             {
                 enableAbility(abilityPair, player);
 

@@ -313,6 +313,23 @@ public class MorphManager extends MorphPluginObject implements IManagePlayerData
         return ImmutableList.copyOf(activeDisguises.values());
     }
 
+    /**
+     * 获取所有已伪装玩家的只读视图，不会复制列表
+     * @apiNote 用于热路径（例如生物AI），列表中的玩家可能已经离线
+     */
+    public Collection<DisguiseState> activeDisguisesView()
+    {
+        return Collections.unmodifiableCollection(activeDisguises.values());
+    }
+
+    /**
+     * @return 当前是否没有任何玩家处于伪装中
+     */
+    public boolean noActiveDisguises()
+    {
+        return activeDisguises.isEmpty();
+    }
+
     private final Map<UUID, Long> uuidMoprhTimeMap = new ConcurrentHashMap<>();
 
     /**

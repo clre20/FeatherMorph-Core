@@ -31,6 +31,10 @@ public class SoundListener extends ProtocolListener
         if (event.getPacketType() != PacketType.Play.Server.SOUND_EFFECT)
             return;
 
+        // 没有任何玩家处于伪装时无需解析此数据包
+        if (registry.isEmpty())
+            return;
+
         var targetPlayer = (Player) event.getPlayer();
 
         if (targetPlayer == null)

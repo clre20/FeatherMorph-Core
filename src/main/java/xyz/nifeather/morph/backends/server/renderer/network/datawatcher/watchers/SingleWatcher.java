@@ -228,7 +228,8 @@ public abstract class SingleWatcher extends MorphPluginObject
     /**
      * Values in this list shouldn't be included with meta packet processing in {@link SingleWatcher#handleEntityMetadataPacket(WrapperPlayServerEntityMetadata)}
      */
-    private final List<Integer> blockedValues = Collections.synchronizedList(new ObjectArrayList<>());
+    // 性能优化：每个元数据包的每一项都会查询此集合，使用 Set 代替 List 以避免 O(n) 查找
+    private final Set<Integer> blockedValues = ConcurrentHashMap.newKeySet();
 
     /**
      * Block specific value type (by index) from further updating.
@@ -237,8 +238,7 @@ public abstract class SingleWatcher extends MorphPluginObject
      */
     public void block(int index)
     {
-        if (!blockedValues.contains(index))
-            blockedValues.add(index);
+        blockedValues.add(index);
     }
 
     /**
@@ -253,7 +253,7 @@ public abstract class SingleWatcher extends MorphPluginObject
 
     public void unBlock(int index)
     {
-        blockedValues.remove((Integer) index);
+        blockedValues.remove(index);
     }
 
     public void unBlock(SingleValue<?> sv)
@@ -344,7 +344,8 @@ public abstract class SingleWatcher extends MorphPluginObject
         if (value == null)
             throw new IllegalArgumentException("If you wish to remove a SingleValue, use remove()");
 
-        if (!this.knownValues.containsValue(singleValue))
+        // 性能优化：SV 以其 index 为键存储，直接按键查找而不是遍历所有值 (containsValue)
+        if (!singleValue.equals(this.knownValues.get(singleValue.index())))
         {
             var cast = this.tryCast(singleValue);
             String message = "Trying to write a SV that doesn't belongs to this Watcher: '%s'. ".formatted(singleValue);

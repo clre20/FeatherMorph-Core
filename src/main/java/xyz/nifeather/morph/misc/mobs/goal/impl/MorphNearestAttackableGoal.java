@@ -107,32 +107,53 @@ public class MorphNearestAttackableGoal extends Goal
 
     private LivingEntity findTarget()
     {
+        // 性能优化：此Goal会被添加到所有生物上，因此不再扫描生物周围的所有实体，
+        //          而是只遍历当前处于伪装中的玩家（通常远少于周围实体数量）
+        if (morphManager.noActiveDisguises())
+            return null;
+
         double followRange = getFollowRange();
+        var mobType = mob.getType();
+        var mobWorld = mob.getWorld();
+        var mobLocation = mob.getLocation();
 
-        var players = mob.getNearbyEntities(followRange, followRange, followRange)
-                .stream().filter(e ->
-                {
-                    if (!(e instanceof Player player) || !FoliaThreadUtils.isTickThreadFor(e)) return false;
+        Player found = null;
+        DisguiseState foundState = null;
+        double foundDistance = Double.MAX_VALUE;
 
-                    var gamemode = player.getGameMode();
-                    return gamemode == GameMode.SURVIVAL || gamemode == GameMode.ADVENTURE;
-                })
-                .map(e -> (Player) e)
-                .toList();
-
-        for (Player candidate : players)
+        for (var state : morphManager.activeDisguisesView())
         {
-            var state = morphManager.getDisguiseStateFor(candidate);
-            if (state == null) continue;
+            if (state.disposed()) continue;
 
-            if (EntityTypeUtils.hostiles(mob.getType(), state.getEntityType()))
+            var candidate = state.getPlayer();
+            if (!candidate.isOnline() || !FoliaThreadUtils.isTickThreadFor(candidate)) continue;
+            if (!mobWorld.equals(candidate.getWorld())) continue;
+
+            var gamemode = candidate.getGameMode();
+            if (gamemode != GameMode.SURVIVAL && gamemode != GameMode.ADVENTURE) continue;
+
+            // 与 getNearbyEntities(range, range, range) 的判定范围保持一致
+            var loc = candidate.getLocation();
+            double dx = Math.abs(loc.getX() - mobLocation.getX());
+            double dy = Math.abs(loc.getY() - mobLocation.getY());
+            double dz = Math.abs(loc.getZ() - mobLocation.getZ());
+            if (dx > followRange || dy > followRange || dz > followRange) continue;
+
+            if (!EntityTypeUtils.hostiles(mobType, state.getEntityType())) continue;
+
+            double distance = dx * dx + dy * dy + dz * dz;
+            if (distance < foundDistance)
             {
-                cachedTargetEntityState = state;
-                return candidate;
+                found = candidate;
+                foundState = state;
+                foundDistance = distance;
             }
         }
 
-        return null;
+        if (found != null)
+            cachedTargetEntityState = foundState;
+
+        return found;
     }
 
     /**

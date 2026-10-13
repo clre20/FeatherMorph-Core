@@ -1,12 +1,12 @@
-# FeatherMorph Core v262.0.1 (Community Continuation)
+# FeatherMorph Core v262.1.2 (Community Continuation)
 
 > [!IMPORTANT]
 > **非官方維護版聲明**  
-> 本專案為社群接手維護版本。原專案由 **[MATRIX-feather](https://github.com/NiFeather/FeatherMorph)** 開發，原倉庫目前已封存 (Archived)。本次 v262.0.1 版本適配至 Minecraft 26.2 穩定版核心，並完整新增 26.2 新生物技能、特性與問題修復。  
+> 本專案為社群接手維護版本。原專案由 **[MATRIX-feather](https://github.com/NiFeather/FeatherMorph)** 開發，原倉庫目前已封存 (Archived)。本次 v262.1.2 版本適配至 Minecraft 26.2 穩定版核心，並完整新增 26.2 新生物技能、特性與全方位深層效能優化。  
 > **原作者不再提供任何維護與技術支援。如有任何問題，請前往 [本專案 Issues 頁面](https://github.com/clre20/FeatherMorph-Core/issues) 回報，請勿前往原專案或打擾原作者！**
 > 
 > **Unofficial Continuation Notice**  
-> This project is a community-maintained continuation. The original project was developed by **[MATRIX-feather](https://github.com/NiFeather/FeatherMorph)** and is now archived. Version v262.0.1 provides full support for Minecraft 26.2, including new mob abilities, skills, and bug fixes.  
+> This project is a community-maintained continuation. The original project was developed by **[MATRIX-feather](https://github.com/NiFeather/FeatherMorph)** and is now archived. Version v262.1.2 provides full support for Minecraft 26.2, including new mob abilities, skills, bug fixes, and comprehensive performance optimizations.  
 > **The original author no longer provides support. Please report any issues to [Our Issues Page](https://github.com/clre20/FeatherMorph-Core/issues). Please do not disturb the original author!**
 
 ---
@@ -19,7 +19,19 @@
 
 ---
 
-### ✨ v262.0.1 更新內容 / Changelog
+### ✨ v262.1.2 更新內容 / Changelog
+
+- ⚡ **全方位深度效能優化 (Comprehensive Performance Optimizations)**:
+  - **異步原子 I/O 架構 (`AsyncFileWriter`)**：將玩家存檔與操作日誌移至專用單線程異步 I/O 池，避免主線程卡頓；實作寫入合併（Write Coalescing）與 `.tmp` 原子替換（Atomic Move），防止崩潰損壞資料檔；關服/重載時安全 Flush。
+  - **玩家數據去重快取 (`PlayerDataStoreNew`)**：記錄上次存檔內容，未變更的數據直接跳過磁碟寫入，顯著降低硬碟 IOPS 開銷。
+  - **實體 AI 索敵減負 (`MorphNearestAttackableGoal` & `MorphBasicAvoidPlayerGoal`)**：加入 `noActiveDisguises()` 守門機制，無人偽裝時 0 消耗；修復原版 AvoidGoal 逃跑判定距離平方 Bug。
+  - **網路與封包熱路徑優化 (`ProtocolListener` & `WatcherUtils`)**：實體封包查找玩家僅檢索偽裝玩家註冊表；視野範圍篩選直接調用 Paper 原生 `getTrackedBy()`。
+  - **記憶體洩漏與快取重構 (`ReflectionUtils` & `PlayerTracker`)**：反射 `Field` 快取重構為全域常駐，移除無用 Map 輪詢；修復玩家旁觀實體時離線造成的記憶體洩漏。
+  - **屬性計算優化 (`DisguiseWaypointTransmitter`)**：改用純數學計算排除 Modifier 後的數值，避免每 Tick 頻繁增刪 Modifier 觸發屬性 Dirty 重算。
+
+---
+
+### ✨ v262.0.1 歷史更新內容 / Previous Changelog
 
 - 🚀 **升級支援 Minecraft 26.2**：完整適配至 Minecraft 26.2 及 Paper `26.2.build.121-stable` 伺服器核心。  
   *Support Minecraft 26.2*: Fully adapted to Minecraft 26.2 and Paper `26.2.build.121-stable` server software.
