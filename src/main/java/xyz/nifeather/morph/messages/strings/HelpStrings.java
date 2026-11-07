@@ -212,6 +212,90 @@ public class HelpStrings extends AbstractMorphStrings
                 "[Fb] 提取插件资源");
     }
 
+    // region 一頁式說明
+
+    public static FormattableMessage pageHeader()
+    {
+        return getFormattable(getKey("page_header"),
+                "<gold><st>━━━━━</st></gold> <yellow><bold>FeatherMorph 指令說明</bold></yellow> <gold><st>━━━━━</st></gold>");
+    }
+
+    public static FormattableMessage pageFooter()
+    {
+        return getFormattable(getKey("page_footer"),
+                "<gold><st>━━━━━</st></gold> <gray>點擊指令即可填入聊天欄</gray> <gold><st>━━━━━</st></gold>");
+    }
+
+    public static FormattableMessage categoryLine()
+    {
+        return getFormattable(getKey("category_line"),
+                "<gold>▍<category></gold>");
+    }
+
+    public static FormattableMessage categoryDisguise()
+    {
+        return getFormattable(getKey("category_disguise"), "偽裝");
+    }
+
+    public static FormattableMessage categoryRequest()
+    {
+        return getFormattable(getKey("category_request"), "交換");
+    }
+
+    public static FormattableMessage categoryPlugin()
+    {
+        return getFormattable(getKey("category_plugin"), "插件與管理");
+    }
+
+    public static FormattableMessage entryLine()
+    {
+        return getFormattable(getKey("entry_line"),
+                "  <aqua><command></aqua> <dark_gray>-</dark_gray> <gray><description></gray>");
+    }
+
+    public static FormattableMessage entryHover()
+    {
+        return getFormattable(getKey("entry_hover"),
+                "<yellow><command></yellow><newline><gray><description></gray><newline><dark_gray>權限：<permission></dark_gray><newline><green>點擊填入聊天欄</green>");
+    }
+
+    public static FormattableMessage noPermissionRequired()
+    {
+        return getFormattable(getKey("no_permission_required"), "無");
+    }
+
+    public static FormattableMessage categoryNotesHover()
+    {
+        return getFormattable(getKey("category_notes_hover"), "<yellow>小提示</yellow>");
+    }
+
+    public static FormattableMessage noteLine()
+    {
+        return getFormattable(getKey("note_line"), "<gray>※ <note></gray>");
+    }
+
+    public static FormattableMessage versionDescription()
+    {
+        return getFormattable(getKey("description_version"), "檢查 GitHub 上是否有新版本");
+    }
+
+    public static FormattableMessage lookupDescription()
+    {
+        return getFormattable(getKey("description_lookup"), "查詢玩家已解鎖的偽裝");
+    }
+
+    public static FormattableMessage skinCacheDescription()
+    {
+        return getFormattable(getKey("description_skin_cache"), "管理皮膚快取");
+    }
+
+    public static FormattableMessage makeDisguiseToolDescription()
+    {
+        return getFormattable(getKey("description_make_disguise_tool"), "把手上的物品設為偽裝道具");
+    }
+
+    // endregion 一頁式說明
+
     private static String getKey(String key)
     {
         return "help." + key;

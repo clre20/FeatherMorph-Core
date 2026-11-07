@@ -1,5 +1,6 @@
 package xyz.nifeather.morph.commands.subcommands.plugin;
 
+import xyz.nifeather.morph.messages.strings.HelpStrings;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -41,7 +42,7 @@ public class LookupSubCommand extends BrigadierCommand
     @Override
     public FormattableMessage getHelpMessage()
     {
-        return new FormattableMessage(plugin, "lookup");
+        return HelpStrings.lookupDescription();
     }
 
     @Resolved(shouldSolveImmediately = true)

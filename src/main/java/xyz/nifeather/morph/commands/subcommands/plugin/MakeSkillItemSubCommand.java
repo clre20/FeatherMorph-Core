@@ -1,5 +1,6 @@
 package xyz.nifeather.morph.commands.subcommands.plugin;
 
+import xyz.nifeather.morph.messages.strings.HelpStrings;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -31,7 +32,7 @@ public class MakeSkillItemSubCommand extends BrigadierCommand
     @Override
     public FormattableMessage getHelpMessage()
     {
-        return new FormattableMessage(plugin, "make selected a disguise tool");
+        return HelpStrings.makeDisguiseToolDescription();
     }
 
     @Override

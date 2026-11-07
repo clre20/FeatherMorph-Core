@@ -99,85 +99,112 @@ public class HelpSubCommand extends MorphPluginObject implements IConvertibleBri
         }
     }
 
-    private List<Component> constructSectionMessage(CommandSender sender, Section section)
+    /**
+     * 區段在說明頁顯示的分類名稱
+     */
+    private FormattableMessage categoryName(Section section)
     {
-        var entries = section.getEntries();
-        var locale = MessageUtils.getLocale(sender);
-
-        //添加section的标题
-        var list = ObjectArrayList.of(
-                Component.empty(),
-                HelpStrings.commandSectionHeaderString()
-                        .resolve("basename", section.getCommandBaseName()).createComponent(locale));
-
-
-        //build entry
-        for (var entry : entries)
+        return switch (section.getCommandBaseName())
         {
-            var perm = entry.permission();
-
-            //如果指令不要求权限或者sender拥有此权限，添加到列表里
-            if (perm == null || sender.hasPermission(perm))
-            {
-                var desc = entry.description();
-                if (desc == null)
-                    desc = new FormattableMessage(FeatherMorphMain.getInstance(), "???");
-
-                var msg = HelpStrings.commandEntryString()
-                        .resolve("basename", entry.baseName())
-                        .resolve("description", desc)
-                        .createComponent(locale)
-                        .decorate(TextDecoration.UNDERLINED)
-                        .hoverEvent(HoverEvent.showText(HelpStrings.clickToCompleteString().createComponent(locale)))
-                        .clickEvent(ClickEvent.suggestCommand(entry.suggestingCommand()));
-
-                list.add(msg);
-            }
-        }
-
-        if (section.getNotes() != null && !section.getNotes().isEmpty())
-        {
-            list.addAll(ObjectList.of(
-                    Component.empty(),
-                    HelpStrings.specialNoteString().createComponent(locale)
-            ));
-
-            for (var f : section.getNotes())
-            {
-                list.add(f.createComponent(locale)
-                        .decorate(TextDecoration.ITALIC));
-            }
-        }
-
-        list.add(Component.empty());
-
-        return list;
+            case "/" -> HelpStrings.categoryDisguise();
+            case "request" -> HelpStrings.categoryRequest();
+            case "feathermorph" -> HelpStrings.categoryPlugin();
+            default -> new FormattableMessage(FeatherMorphMain.getInstance(), "/" + section.getCommandBaseName());
+        };
     }
 
     /**
-     * 从设置的Section中构建sender的帮助信息
-     *
-     * @param sender 要显示给谁
-     * @return 构建的帮助信息
+     * 顯示用的指令：/feathermorph 縮寫為 /fm
      */
-    private List<Component> constructHelpMessage(CommandSender sender)
+    private static String displayCommand(String baseName)
+    {
+        if (baseName.equals("feathermorph") || baseName.startsWith("feathermorph "))
+            baseName = "fm" + baseName.substring("feathermorph".length());
+
+        return "/" + baseName;
+    }
+
+    /**
+     * 建構一個分類（標題 + sender 有權限的指令）；沒有任何可用指令時回傳空清單
+     */
+    private List<Component> constructSection(CommandSender sender, Section section, String locale)
+    {
+        var lines = new ObjectArrayList<Component>();
+
+        for (var entry : section.getEntries())
+        {
+            var perm = entry.permission();
+            if (perm != null && !sender.hasPermission(perm)) continue;
+
+            var desc = entry.description();
+            if (desc == null)
+                desc = new FormattableMessage(FeatherMorphMain.getInstance(), "???");
+
+            var command = displayCommand(entry.baseName());
+            var permissionText = perm == null
+                    ? HelpStrings.noPermissionRequired()
+                    : new FormattableMessage(FeatherMorphMain.getInstance(), perm);
+
+            var hover = HelpStrings.entryHover()
+                    .resolve("command", command)
+                    .resolve("description", desc)
+                    .resolve("permission", permissionText)
+                    .createComponent(locale);
+
+            var line = HelpStrings.entryLine()
+                    .resolve("command", command)
+                    .resolve("description", desc)
+                    .createComponent(locale)
+                    .hoverEvent(HoverEvent.showText(hover))
+                    .clickEvent(ClickEvent.suggestCommand(entry.suggestingCommand() + " "));
+
+            lines.add(line);
+        }
+
+        if (lines.isEmpty()) return lines;
+
+        var title = HelpStrings.categoryLine()
+                .resolve("category", categoryName(section))
+                .createComponent(locale);
+
+        // 區段的補充說明放在分類標題的懸停提示裡，保持版面精簡
+        var notes = section.getNotes();
+        if (notes != null && !notes.isEmpty())
+        {
+            Component hover = HelpStrings.categoryNotesHover().createComponent(locale);
+            for (var note : notes)
+            {
+                hover = hover.append(Component.newline())
+                        .append(HelpStrings.noteLine().resolve("note", note).createComponent(locale));
+            }
+
+            title = title.hoverEvent(HoverEvent.showText(hover));
+        }
+
+        lines.add(0, title);
+        return lines;
+    }
+
+    /**
+     * 一頁式說明：依分類列出 sender 有權限使用的所有指令
+     *
+     * @param sender 要顯示給誰
+     * @param only 只顯示這個分類；null 表示全部
+     */
+    private List<Component> constructHelpMessage(CommandSender sender, @org.jetbrains.annotations.Nullable Section only)
     {
         var list = new ObjectArrayList<Component>();
         var locale = MessageUtils.getLocale(sender);
 
-        list.add(HelpStrings.avaliableCommandHeaderString().createComponent(locale));
+        list.add(HelpStrings.pageHeader().createComponent(locale));
+
         for (var section : commandSections)
         {
-            var msg = HelpStrings.commandNamePatternString()
-                    .resolve("basename", section.getCommandBaseName())
-                    .resolve("description", section.getDescription())
-                    .createComponent(locale)
-                    .decorate(TextDecoration.UNDERLINED)
-                    .clickEvent(ClickEvent.runCommand("/feathermorph " + name() + " " + section.getCommandBaseName()))
-                    .hoverEvent(HoverEvent.showText(HelpStrings.clickToViewString().createComponent(locale)));
-
-            list.add(msg);
+            if (only != null && section != only) continue;
+            list.addAll(constructSection(sender, section, locale));
         }
+
+        list.add(HelpStrings.pageFooter().createComponent(locale));
 
         return list;
     }
@@ -200,8 +227,8 @@ public class HelpSubCommand extends MorphPluginObject implements IConvertibleBri
     {
         var sender = context.getSource().getSender();
 
-        for (var s : constructHelpMessage(sender))
-            MessageUtils.send(sender, s);
+        for (var line : constructHelpMessage(sender, null))
+            sender.sendMessage(line);
 
         return 1;
     }
@@ -216,8 +243,8 @@ public class HelpSubCommand extends MorphPluginObject implements IConvertibleBri
 
         if (section != null)
         {
-            for (var s : constructSectionMessage(sender, section))
-                MessageUtils.send(sender, s);
+            for (var line : constructHelpMessage(sender, section))
+                sender.sendMessage(line);
         }
         else
         {
