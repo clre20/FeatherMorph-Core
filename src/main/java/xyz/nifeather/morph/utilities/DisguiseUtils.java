@@ -54,11 +54,15 @@ public class DisguiseUtils
         var value = new ObjectArrayList<Player>();
 
         var loc = player.getLocation();
-        player.getWorld().getPlayers().forEach(p ->
+        var buffer = loc.clone();
+        double distanceSquared = (double) distance * distance;
+
+        // 使用平方距离并复用 Location，避免每个玩家都开方和分配新对象
+        for (var p : player.getWorld().getPlayers())
         {
-            if (p.getLocation().distance(loc) <= distance)
+            if (p.getLocation(buffer).distanceSquared(loc) <= distanceSquared)
                 value.add(p);
-        });
+        }
 
         if (!includeSelf)
             value.remove(player);

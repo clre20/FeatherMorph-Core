@@ -211,6 +211,15 @@ public class MorphManager extends MorphPluginObject implements IManagePlayerData
 
     private void tryBackends()
     {
+        if (!Bukkit.getPluginManager().isPluginEnabled("packetevents"))
+        {
+            logger.warn("PacketEvents is not installed or enabled on this server.");
+            logger.warn("Unable to initialize ServerBackend as our disguise backend.");
+            logger.warn("Using default backend (%s), displaying disguises at the server side will not be supported this run."
+                    .formatted(defaultBackend.getIdentifier()));
+            return;
+        }
+
         try
         {
             var serverBackend = new ServerBackend();
@@ -221,13 +230,15 @@ public class MorphManager extends MorphPluginObject implements IManagePlayerData
         catch (NoClassDefFoundError e)
         {
             logger.error("Unable to initialize ServerBackend as our disguise backend, maybe PacketEvents is not installed on the server.");
-            logger.error("Using NilBackend, displaying disguises at the server side will not be supported this run.");
+            logger.error("Using default backend (%s), displaying disguises at the server side will not be supported this run."
+                    .formatted(defaultBackend.getIdentifier()));
         }
         catch (Throwable t)
         {
             logger.error("Unable to initialize ServerBackend as our disguise backend", t);
-            logger.error("Using NilBackend, displaying disguises at the server side will not be supported this run.");
-            logger.error("Please consider reporting this issue to our GitHub: https://github.com/MATRIX-feather/FeatherMorph/issues");
+            logger.error("Using default backend (%s), displaying disguises at the server side will not be supported this run."
+                    .formatted(defaultBackend.getIdentifier()));
+            logger.error("Please consider reporting this issue to our GitHub: https://github.com/clre20/FeatherMorph-Core/issues");
         }
     }
 
@@ -300,6 +311,23 @@ public class MorphManager extends MorphPluginObject implements IManagePlayerData
     public List<DisguiseState> getActiveDisguises()
     {
         return ImmutableList.copyOf(activeDisguises.values());
+    }
+
+    /**
+     * 获取所有已伪装玩家的只读视图，不会复制列表
+     * @apiNote 用于热路径（例如生物AI），列表中的玩家可能已经离线
+     */
+    public Collection<DisguiseState> activeDisguisesView()
+    {
+        return Collections.unmodifiableCollection(activeDisguises.values());
+    }
+
+    /**
+     * @return 当前是否没有任何玩家处于伪装中
+     */
+    public boolean noActiveDisguises()
+    {
+        return activeDisguises.isEmpty();
     }
 
     private final Map<UUID, Long> uuidMoprhTimeMap = new ConcurrentHashMap<>();

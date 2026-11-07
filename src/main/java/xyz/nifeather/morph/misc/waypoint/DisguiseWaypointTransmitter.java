@@ -5,7 +5,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.waypoints.WaypointTransmitter;
+import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
@@ -100,15 +102,37 @@ public class DisguiseWaypointTransmitter implements IDisguiseWaypointTransmitter
             var modifier = playerAttribute.getModifier(DefaultDisguiseProvider.WAYPOINT_TRANSMIT_MODIFIER_KEY);
             if (modifier != null)
             {
-                playerAttribute.removeModifier(modifier);
-                var value = playerAttribute.getValue(); // Gets the value of this attribute without our modifier
-                playerAttribute.addTransientModifier(modifier);
-
-                return value > 0d;
+                // 性能优化：此方法每tick都会被调用，之前每次都要移除再添加修饰器（会使属性重新计算并标记为脏），
+                //          现在改为直接计算不包含我们修饰器时的属性值
+                return valueWithoutModifier(playerAttribute, DefaultDisguiseProvider.WAYPOINT_TRANSMIT_MODIFIER_KEY) > 0d;
             }
         }
 
         return true;
+    }
+
+    /**
+     * 按照原版 AttributeInstance#calculateValue() 的规则计算排除某个修饰器后的属性值
+     */
+    private static double valueWithoutModifier(AttributeInstance attribute, NamespacedKey excludedKey)
+    {
+        double base = attribute.getBaseValue();
+        double multipliedBase = 0d;
+        double multipliedTotal = 1d;
+
+        for (var modifier : attribute.getModifiers())
+        {
+            if (excludedKey.equals(modifier.getKey())) continue;
+
+            switch (modifier.getOperation())
+            {
+                case ADD_NUMBER -> base += modifier.getAmount();
+                case ADD_SCALAR -> multipliedBase += modifier.getAmount();
+                case MULTIPLY_SCALAR_1 -> multipliedTotal *= 1d + modifier.getAmount();
+            }
+        }
+
+        return (base + base * multipliedBase) * multipliedTotal;
     }
 
     @NotNull

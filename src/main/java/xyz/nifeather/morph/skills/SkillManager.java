@@ -64,6 +64,7 @@ public class SkillManager extends MorphPluginObject
                 new SplashPotionSkill(),
                 new GuardianSkill(),
                 new DashMorphSkill(),
+                new SulfurCubeMorphSkill(),
 
                 NoneMorphSkill.instance
         ));

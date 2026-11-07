@@ -1,6 +1,5 @@
 package xyz.nifeather.morph.utilities;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityDimensions;
@@ -10,33 +9,19 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 public class ReflectionUtils
 {
+    /**
+     * 字段缓存现在与玩家实例无关（所有玩家共用同一个 Field），因此无需再清理
+     */
+    @Deprecated
     public static void cleanCaches()
     {
-        var toRemove = new ObjectArrayList<ServerPlayer>();
-        playerDimensionFieldMap.forEach((s, f) ->
-        {
-            if (!s.getBukkitEntity().isOnline())
-                toRemove.add(s);
-        });
-
-        playerEHFieldMap.forEach((s, f) ->
-        {
-            if (!s.getBukkitEntity().isOnline())
-                toRemove.add(s);
-        });
-
-        for (ServerPlayer serverPlayer : toRemove)
-        {
-            playerDimensionFieldMap.remove(serverPlayer);
-            playerEHFieldMap.remove(serverPlayer);
-        }
     }
 
-    private static final Map<ServerPlayer, Field> playerDimensionFieldMap = new Object2ObjectOpenHashMap<>();
+    // 性能优化：Field 只和类有关，与玩家实例无关，因此全局缓存一份即可
+    private static volatile Field playerDimensionField;
 
     // private EntitySize bh; //Entity#dimensions
     // private float bi; //Entity#eyeHeight
@@ -47,7 +32,7 @@ public class ReflectionUtils
     public static Field getPlayerDimensionsField(ServerPlayer player)
             throws NullDependencyException
     {
-        var field = playerDimensionFieldMap.getOrDefault(player, null);
+        var field = playerDimensionField;
         if (field != null) return field;
 
         field = ReflectionUtils.getFields(player, EntityDimensions.class, true)
@@ -61,13 +46,13 @@ public class ReflectionUtils
         if (field == null)
             throw new NullDependencyException("Unable to find player dimension: No such field 'EntitySize %s'".formatted(dimensionsFieldName));
 
-        playerDimensionFieldMap.put(player, field);
         field.setAccessible(true);
+        playerDimensionField = field;
 
         return field;
     }
 
-    private static final Map<ServerPlayer, Field> playerEHFieldMap = new Object2ObjectOpenHashMap<>();
+    private static volatile Field playerEyeHeightField;
 
     public static <T> T getValue(Object obj, String fieldName, Class<T> type) throws NullDependencyException
     {
@@ -108,7 +93,7 @@ public class ReflectionUtils
     public static Field getPlayerEyeHeightField(ServerPlayer player)
             throws NullDependencyException
     {
-        var field = playerEHFieldMap.getOrDefault(player, null);
+        var field = playerEyeHeightField;
         if (field != null) return field;
 
         field = ReflectionUtils.getFields(player, float.class, true)
@@ -125,7 +110,7 @@ public class ReflectionUtils
 
         field.setAccessible(true);
 
-        playerEHFieldMap.put(player, field);
+        playerEyeHeightField = field;
         return field;
     }
 

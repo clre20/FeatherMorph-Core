@@ -82,8 +82,7 @@ public class EntityTypeUtils
 
         if (bukkitType == EntityType.UNKNOWN) return null;
 
-        var result = net.minecraft.world.entity.EntityType.byString(bukkitType.key().asString())
-                .orElse(null);
+        var result = org.bukkit.craftbukkit.entity.CraftEntityType.bukkitToMinecraft(bukkitType);
 
         nmsTypeMap.put(bukkitType, result);
 
@@ -96,8 +95,7 @@ public class EntityTypeUtils
         var cache = nmsClassMap.getOrDefault(type, null);
         if (cache != null) return cache;
 
-        var nmsType = net.minecraft.world.entity.EntityType.byString(type.key().asString())
-                .orElse(null);
+        var nmsType = getNmsType(type);
 
         if (nmsType == null)
         {
@@ -151,7 +149,8 @@ public class EntityTypeUtils
         return type == EntityType.SKELETON
                 || type == EntityType.STRAY
                 || type == EntityType.WITHER_SKELETON
-                || type == EntityType.BOGGED;
+                || type == EntityType.BOGGED
+                || type == EntityType.PARCHED;
     }
 
     public static boolean isZombiesHostile(EntityType type)
@@ -261,7 +260,8 @@ public class EntityTypeUtils
         return ObjectSet.of(EntityType.COD, EntityType.SALMON, EntityType.PUFFERFISH, EntityType.TROPICAL_FISH,
                 EntityType.SQUID, EntityType.GLOW_SQUID,
                 EntityType.AXOLOTL, EntityType.GUARDIAN, EntityType.ELDER_GUARDIAN, EntityType.DOLPHIN,
-                EntityType.TADPOLE, EntityType.DROWNED, EntityType.ZOMBIE_NAUTILUS, EntityType.NAUTILUS);
+                EntityType.TADPOLE, EntityType.DROWNED, EntityType.ZOMBIE_NAUTILUS, EntityType.NAUTILUS,
+                EntityType.SULFUR_CUBE);
     }
 
     public static Set<EntityType> dryOutInAir()
@@ -276,7 +276,7 @@ public class EntityTypeUtils
     {
         return ObjectSet.of(EntityType.ZOMBIE, EntityType.ZOMBIE_VILLAGER,
                 EntityType.SKELETON, EntityType.STRAY,
-                EntityType.DROWNED, EntityType.PHANTOM, EntityType.ZOMBIE_NAUTILUS);
+                EntityType.DROWNED, EntityType.PHANTOM, EntityType.ZOMBIE_NAUTILUS, EntityType.PARCHED);
     }
 
     public static Set<EntityType> spider()
@@ -308,7 +308,7 @@ public class EntityTypeUtils
     {
         return ObjectSet.of(EntityType.IRON_GOLEM, EntityType.CAT,
                 EntityType.OCELOT, EntityType.SNOW_GOLEM, EntityType.MAGMA_CUBE,
-                EntityType.CHICKEN, EntityType.SHULKER);
+                EntityType.CHICKEN, EntityType.SHULKER, EntityType.SULFUR_CUBE);
     }
 
     public static Set<EntityType> noFallDamage1()
@@ -341,7 +341,8 @@ public class EntityTypeUtils
     public static boolean saddleable(EntityType type)
     {
         return type == EntityType.HORSE || type == EntityType.MULE || type == EntityType.DONKEY
-                || type == EntityType.CAMEL || type == EntityType.SKELETON_HORSE || type == EntityType.ZOMBIE_HORSE;
+                || type == EntityType.CAMEL || type == EntityType.CAMEL_HUSK
+                || type == EntityType.SKELETON_HORSE || type == EntityType.ZOMBIE_HORSE;
     }
 
     public static boolean hasBossBar(EntityType type)
@@ -399,7 +400,7 @@ public class EntityTypeUtils
             case CREEPER -> targetType == EntityType.CAT || targetType == EntityType.OCELOT;
             case PHANTOM -> targetType == EntityType.CAT;
             case SPIDER -> targetType == EntityType.ARMADILLO;
-            case SKELETON, WITHER_SKELETON -> targetType == EntityType.WOLF;
+            case SKELETON, WITHER_SKELETON, BOGGED, PARCHED -> targetType == EntityType.WOLF;
             case VILLAGER -> targetType == EntityType.ZOMBIE || targetType == EntityType.ZOMBIE_VILLAGER;
             case PILLAGER, VINDICATOR, EVOKER, ILLUSIONER -> targetType == EntityType.CREAKING;
 

@@ -46,7 +46,7 @@ public class MorphBukkitVexHolder
         if (this.vex.isRemoved())
             return;
 
-        var bukkitVex = this.vex.getBukkitLivingEntity();
+        var bukkitVex = this.vex.getBukkitEntity();
 
         if (this.vex.distanceTo(this.owner) > 24)
         {
@@ -91,7 +91,7 @@ public class MorphBukkitVexHolder
 
     public org.bukkit.entity.Vex getVex()
     {
-        return (org.bukkit.entity.Vex) this.vex.getBukkitLivingEntity();
+        return (org.bukkit.entity.Vex) this.vex.getBukkitEntity();
     }
 
     private static class MorphOwnerHurtByTargetGoal extends TargetGoal
@@ -140,7 +140,7 @@ public class MorphBukkitVexHolder
 
             thisEntity.getMoveControl().setWantedPosition(thisEntity.getX(), thisEntity.getY(), thisEntity.getZ(), 2);
 
-            ((org.bukkit.entity.Vex)thisEntity.getBukkitLivingEntity()).setTarget(targetMob.getBukkitLivingEntity());
+            ((org.bukkit.entity.Vex)thisEntity.getBukkitEntity()).setTarget(targetMob.getBukkitEntity());
         }
     }
 
@@ -194,7 +194,7 @@ public class MorphBukkitVexHolder
             if (targetMob != null && targetMob.isRemoved())
                 this.targetMob = null;
 
-            ((org.bukkit.entity.Vex)thisEntity.getBukkitLivingEntity()).setTarget(targetMob.getBukkitLivingEntity());
+            ((org.bukkit.entity.Vex)thisEntity.getBukkitEntity()).setTarget(targetMob.getBukkitEntity());
         }
     }
 }

@@ -74,6 +74,34 @@ public class RenderRegistry extends MorphPluginObject
         return watcherMap.getOrDefault(uuid, null);
     }
 
+    /**
+     * @return 当前是否没有任何已注册的 Watcher
+     */
+    public boolean isEmpty()
+    {
+        return watcherMap.isEmpty();
+    }
+
+    /**
+     * 根据实体ID查找已注册伪装的在线玩家
+     * @apiNote 此方法会在网络线程中对几乎每个实体数据包调用，因此只遍历已伪装的玩家，而不是所有在线玩家
+     * @return 匹配的玩家，如果此实体ID不属于任何已伪装的玩家则返回 null
+     */
+    @Nullable
+    public Player findPlayerByEntityId(int entityId)
+    {
+        if (watcherMap.isEmpty()) return null;
+
+        for (var uuid : watcherMap.keySet())
+        {
+            var player = Bukkit.getPlayer(uuid);
+            if (player != null && player.getEntityId() == entityId)
+                return player;
+        }
+
+        return null;
+    }
+
     public void unregister(Player player)
     {
         unregister(player.getUniqueId());

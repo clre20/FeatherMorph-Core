@@ -46,6 +46,10 @@ public class ExplodeMorphSkill extends DelayedMorphSkill<ExplosionConfiguration>
             state.getDisguiseWrapper().setAggressive(true);
             clientHandler.sendCommand(player, new S2CSetSNbtCommand("{\"ignited\": true, \"Fuse\": 30}"));
         }
+        else if (state.getEntityType() == EntityType.SULFUR_CUBE)
+        {
+            clientHandler.sendCommand(player, new S2CSetSNbtCommand("{\"Fuse\": 30}"));
+        }
 
         playSoundToNearbyPlayers(player, 16,
                 Key.key(option.getPrimedSound()), Sound.Source.HOSTILE);
@@ -72,6 +76,10 @@ public class ExplodeMorphSkill extends DelayedMorphSkill<ExplosionConfiguration>
         {
             state.getDisguiseWrapper().setAggressive(false);
             clientHandler.sendCommand(player, new S2CSetSNbtCommand("{\"ignited\": false, \"Fuse\": 0}"));
+        }
+        else if (state.getEntityType() == EntityType.SULFUR_CUBE)
+        {
+            clientHandler.sendCommand(player, new S2CSetSNbtCommand("{\"Fuse\": -1}"));
         }
 
         if (killsSelf && !(player.getGameMode() == GameMode.CREATIVE))

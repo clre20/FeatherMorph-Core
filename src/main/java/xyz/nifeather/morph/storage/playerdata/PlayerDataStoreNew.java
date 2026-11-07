@@ -1,7 +1,6 @@
 package xyz.nifeather.morph.storage.playerdata;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -12,9 +11,10 @@ import xyz.nifeather.morph.interfaces.IManagePlayerData;
 import xyz.nifeather.morph.misc.DisguiseMeta;
 import xyz.nifeather.morph.misc.DisguiseTypes;
 import xyz.nifeather.morph.storage.DirectoryJsonBasedStorage;
+import xyz.nifeather.morph.utilities.AsyncFileWriter;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -74,6 +74,16 @@ public class PlayerDataStoreNew extends DirectoryJsonBasedStorage<PlayerMeta> im
         logger.info("Done migrating player data!");
     }
 
+    /**
+     * 上次成功提交写入的内容，用于跳过没有变化的写入
+     */
+    private final Map<UUID, String> lastSavedJson = new ConcurrentHashMap<>();
+
+    /**
+     * 将玩家数据写入磁盘
+     * @apiNote 序列化在调用线程中进行（保证数据快照一致），实际的磁盘写入在 IO 线程中异步执行；
+     *          如果内容和上次写入的完全相同，则跳过此次写入
+     */
     public void save(PlayerMeta playerMeta)
     {
         var uuid = playerMeta.uniqueId;
@@ -84,24 +94,25 @@ public class PlayerDataStoreNew extends DirectoryJsonBasedStorage<PlayerMeta> im
             return;
         }
 
-        var path = this.getPath(playerMeta.uniqueId.toString()) + ".json";
-
-        var file = this.directoryStorage.getFile(path, true);
-        if (file == null)
-        {
-            logger.warn("Cannot save disguise configuration for " + uuid);
-            return;
-        }
-
         String json = gson.toJson(playerMeta);
-        try
-        {
-            FileUtils.writeStringToFile(file, json, StandardCharsets.UTF_8);
-        }
-        catch (Throwable t)
-        {
-            logger.error("Can't write content to file: " + t.getMessage());
-        }
+
+        if (json.equals(lastSavedJson.get(uuid)))
+            return;
+
+        lastSavedJson.put(uuid, json);
+
+        var path = this.getPath(uuid.toString()) + ".json";
+
+        AsyncFileWriter.writeLatest("playerdata:" + path, json,
+                () ->
+                {
+                    var file = this.directoryStorage.getFile(path, true);
+                    if (file == null)
+                        logger.warn("Cannot save disguise configuration for " + uuid);
+
+                    return file;
+                },
+                () -> lastSavedJson.remove(uuid, json)); // 写入失败时允许下次重试
     }
 
     @Override
@@ -242,6 +253,9 @@ public class PlayerDataStoreNew extends DirectoryJsonBasedStorage<PlayerMeta> im
             storedMeta.playerName = player.getName();
             initializePlayerMeta(storedMeta, uuid);
 
+            // 记录从磁盘读取到的内容，这样关服时没有变化的玩家数据不会被重复写入
+            lastSavedJson.putIfAbsent(uuid, gson.toJson(storedMeta));
+
             trackedPlayerMetaMap.put(uuid, storedMeta);
 
             return storedMeta;
@@ -291,7 +305,11 @@ public class PlayerDataStoreNew extends DirectoryJsonBasedStorage<PlayerMeta> im
     @Override
     public boolean reload()
     {
+        // 确保之前提交的写入已经落盘，避免重新从磁盘读取到旧数据
+        AsyncFileWriter.flush(Duration.ofSeconds(10));
+
         clearCache();
+        lastSavedJson.clear();
         trackedPlayerMetaMap.clear();
 
         return true;
@@ -300,9 +318,11 @@ public class PlayerDataStoreNew extends DirectoryJsonBasedStorage<PlayerMeta> im
     @Override
     public boolean save()
     {
+        // 只有内容发生变化的玩家数据才会真正写入磁盘
         this.trackedPlayerMetaMap.forEach((uuid, meta) -> this.save(meta));
 
-        return true;
+        // 此方法会在关服时调用，因此需要等待所有写入完成
+        return AsyncFileWriter.flush(Duration.ofSeconds(30));
     }
 
     //endregion IManagePlayerData

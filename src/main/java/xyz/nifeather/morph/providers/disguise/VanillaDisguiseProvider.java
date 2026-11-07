@@ -148,9 +148,6 @@ public class VanillaDisguiseProvider extends DefaultDisguiseProvider
             if (modifyBoundingBoxes.get())
                 tryModifyPlayerDimensions(player, state.getDisguiseWrapper());
 
-            if (plugin.getCurrentTick() % 20 == 0)
-                ReflectionUtils.cleanCaches();
-
             return true;
         }
         else

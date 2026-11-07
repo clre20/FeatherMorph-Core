@@ -27,7 +27,7 @@ public class CommonPermissions
 
     public final static String DISGUISE_REVEALING = PERM_ROOT + "disguise_revealing";
 
-    public final static String CHECK_UPDATE = PERM_ROOT + "check_update";
+    public final static String CHECK_UPDATE = PERM_ROOT + "version";
 
     public final static String LOOKUP = PERM_ROOT + "lookup";
 

@@ -12,11 +12,19 @@ public abstract class EffectMorphAbility extends NoOpOptionAbility
 {
     protected abstract PotionEffect getEffect();
 
+    protected boolean shouldApplyEffect(Player player)
+    {
+        return true;
+    }
+
     @Override
     public boolean handle(Player player, DisguiseState state)
     {
-        if (plugin.getCurrentTick() % this.refreshInterval == 0)
-            player.addPotionEffect(getEffect());
+        if (shouldApplyEffect(player))
+        {
+            if (plugin.getCurrentTick() % this.refreshInterval == 0)
+                player.addPotionEffect(getEffect());
+        }
 
         return true;
     }
@@ -26,11 +34,19 @@ public abstract class EffectMorphAbility extends NoOpOptionAbility
     {
         if (super.applyToPlayer(player, state))
         {
-            player.addPotionEffect(getEffect());
+            if (shouldApplyEffect(player))
+                player.addPotionEffect(getEffect());
             return true;
         }
         else
             return false;
+    }
+
+    @Override
+    public boolean revokeFromPlayer(Player player, DisguiseState state)
+    {
+        player.removePotionEffect(getEffect().getType());
+        return super.revokeFromPlayer(player, state);
     }
 
     @Initializer

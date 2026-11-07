@@ -2,7 +2,6 @@ package xyz.nifeather.morph;
 
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.PluginManager;
@@ -41,8 +40,10 @@ import xyz.nifeather.morph.platform.impl.paper.PaperPlatform;
 import xyz.nifeather.morph.skills.SkillManager;
 import xyz.nifeather.morph.storage.skill.SkillsConfigurationStoreNew;
 import xyz.nifeather.morph.updates.UpdateHandler;
+import xyz.nifeather.morph.utilities.AsyncFileWriter;
 import xyz.nifeather.morph.utilities.FoliaThreadUtils;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -107,7 +108,6 @@ public final class FeatherMorphMain extends XiaMoJavaPlugin
 
     private MorphClientHandler clientHandler;
 
-    private Metrics metrics;
 
     private MultiInstanceService instanceService;
 
@@ -191,9 +191,10 @@ public final class FeatherMorphMain extends XiaMoJavaPlugin
         pluginManager = Bukkit.getPluginManager();
         var bukkitVersion = Bukkit.getMinecraftVersion();
 
-        String primaryVersion = "26.1.2";
-        String[] compatVersions = new String[] { primaryVersion, "26.1", "26.1.1" };
-        if (Arrays.stream(compatVersions).noneMatch(bukkitVersion::equals))
+        // 使用 NMS，只支援 26.3 與其 26.3.x 修正版
+        String primaryVersion = "26.3";
+        boolean supported = bukkitVersion.equals(primaryVersion) || bukkitVersion.startsWith(primaryVersion + ".");
+        if (!supported)
         {
             printImportantWarning(
                     true,
@@ -220,8 +221,6 @@ public final class FeatherMorphMain extends XiaMoJavaPlugin
                     "We suggest to use %s instead!".formatted(primaryVersion)
             );
         }
-
-        this.metrics = new Metrics(this, 18062);
 
         this.registerListener(softDeps);
 
@@ -386,11 +385,11 @@ public final class FeatherMorphMain extends XiaMoJavaPlugin
             if (clientHandler != null)
                 clientHandler.getConnectedPlayers().forEach(p -> clientHandler.disconnect(p, new PluginDisabledException("Plugin has been disabled")));
 
-            if (metrics != null)
-                metrics.shutdown();
-
             if (mirrorExecutorHub != null)
                 mirrorExecutorHub.pushToLoggingBase();
+
+            // 等待所有异步磁盘写入完成，确保关服/重载时数据已落盘
+            AsyncFileWriter.flush(Duration.ofSeconds(30));
 
             if (instanceService != null)
                 instanceService.onDisable();

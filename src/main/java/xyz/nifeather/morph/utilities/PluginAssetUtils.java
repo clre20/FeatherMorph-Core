@@ -75,6 +75,7 @@ public class PluginAssetUtils
     }
 
     private static final List<String> allSupportedLanguages = List.of(
+            "zh_tw",
             "zh_cn",
             "en_us",
             "ru_ru"

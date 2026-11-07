@@ -228,7 +228,7 @@ public class ConfigOptions
 
     public static final ConfigOption<String> LANGUAGE_CODE = ConfigOption.builder(String.class)
             .node(languageNode().append("code"))
-            .defaultValue("en_us")
+            .defaultValue("zh_tw")
             .build();
 
     public static final ConfigOption<Boolean> SINGLE_LANGUAGE = ConfigOption.builder(Boolean.class)
@@ -252,8 +252,29 @@ public class ConfigOptions
             .defaultValue(false)
             .build();
 
+    /**
+     * 舊版的單一開關，只用於設定檔第 49 版的遷移。
+     */
+    @Deprecated
     public static final ConfigOption<Boolean> CHECK_UPDATE = ConfigOption.builder(Boolean.class)
             .node(ConfigNode.create().append("check_update"))
+            .defaultValue(true)
+            .build();
+
+    private static ConfigNode updateCheckerNode()
+    {
+        return ConfigNode.create().append("update-checker");
+    }
+
+    /** 伺服器啟動時以非同步方式向 GitHub Releases 檢查一次更新。 */
+    public static final ConfigOption<Boolean> UPDATE_CHECK_ON_STARTUP = ConfigOption.builder(Boolean.class)
+            .node(updateCheckerNode().append("check-on-startup"))
+            .defaultValue(true)
+            .build();
+
+    /** 有新版本時，具備權限的管理員登入 3 秒後收到提醒。 */
+    public static final ConfigOption<Boolean> UPDATE_NOTIFY_ON_JOIN = ConfigOption.builder(Boolean.class)
+            .node(updateCheckerNode().append("notify-on-join"))
             .defaultValue(true)
             .build();
 
@@ -429,4 +450,14 @@ public class ConfigOptions
     {
         return ConfigNode.create().append("world_option");
     }
+
+    public static final ConfigOption<Boolean> SULFUR_CUBE_TNT_BREAKS_BLOCKS = ConfigOption.builder(Boolean.class)
+            .node(ConfigNode.create().append("sulfur_cube").append("tnt_breaks_blocks"))
+            .defaultValue(false)
+            .build();
+
+    public static final ConfigOption<Boolean> SULFUR_CUBE_VANILLA_DAMAGE_IMMUNITY = ConfigOption.builder(Boolean.class)
+            .node(ConfigNode.create().append("sulfur_cube").append("vanilla_damage_immunity"))
+            .defaultValue(true)
+            .build();
 }

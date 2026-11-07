@@ -54,6 +54,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -99,7 +101,7 @@ public class CommonEventProcessor extends MorphPluginObject implements Listener
     {
         this.addSchedule(this::update);
 
-        if (plugin.getCurrentTick() % 8 == 0)
+        if (plugin.getCurrentTick() % 8 == 0 && !playersMinedGoldBlocks.isEmpty())
             playersMinedGoldBlocks.clear();
     }
 
@@ -431,7 +433,8 @@ public class CommonEventProcessor extends MorphPluginObject implements Listener
             playersMinedGoldBlocks.add(e.getPlayer());
     }
 
-    private final List<Player> playersMinedGoldBlocks = Collections.synchronizedList(new ObjectArrayList<>());
+    // 使用 Set：玩家在金块上移动时每次移动都会添加一次，List 会产生大量重复项并使 contains 变为 O(n)
+    private final Set<Player> playersMinedGoldBlocks = ConcurrentHashMap.newKeySet();
 
     @EventHandler(ignoreCancelled = true)
     public void onEntityTarget(EntityTargetEvent e)

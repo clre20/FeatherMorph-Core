@@ -1,5 +1,6 @@
 package xyz.nifeather.morph.backends.server.renderer.utilties;
 
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.GameType;
 import org.bukkit.entity.Player;
@@ -22,21 +23,17 @@ public class WatcherUtils
 
     public static List<Player> getAffectedPlayers(@NotNull Player sourcePlayer)
     {
-        var players = sourcePlayer.getWorld().getPlayers();
+        // 性能优化：直接使用实体追踪器中正在追踪此玩家的玩家列表，
+        //          而不是每次都遍历整个世界的玩家并计算距离（大型服务器上为 O(世界玩家数)）
+        //          只有正在追踪此玩家的客户端才会拥有伪装实体，因此结果与之前一致甚至更准确
+        var players = new ObjectArrayList<Player>(sourcePlayer.getTrackedBy());
         players.remove(sourcePlayer);
 
-        var nmsRec = NmsRecord.of(sourcePlayer);
-
-        if (nmsRec.nmsPlayer().gameMode.getGameModeForPlayer() == GameType.SPECTATOR)
+        if (NmsRecord.ofPlayer(sourcePlayer).gameMode.getGameModeForPlayer() == GameType.SPECTATOR)
         {
             players.removeIf(bukkitPlayer ->
                     NmsRecord.ofPlayer(bukkitPlayer).gameMode.getGameModeForPlayer() != GameType.SPECTATOR);
         }
-
-        var nmsWorld = nmsRec.nmsWorld();
-        var tracking = nmsWorld.spigotConfig.playerTrackingRange + 1;
-        var sourceLocation = sourcePlayer.getLocation();
-        players.removeIf(p -> sourceLocation.distance(p.getLocation()) > tracking);
 
         return players;
     }

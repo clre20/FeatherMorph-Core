@@ -22,10 +22,9 @@ import xyz.nifeather.morph.mirror.impl.simulator.PlayerOperationHandle;
 import xyz.nifeather.morph.storage.DirectoryStorage;
 import xyz.nifeather.morph.storage.mirrorlogging.MirrorSingleEntry;
 import xyz.nifeather.morph.storage.mirrorlogging.OperationType;
+import xyz.nifeather.morph.utilities.AsyncFileWriter;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -208,63 +207,59 @@ public class ExecutorHub extends MorphPluginObject
 
     private void updateTargetFile()
     {
-        cleanUpLogFiles(cleanUpDate.get());
-
         var targetLogDate = logFileTimeFormat.format(new Date(System.currentTimeMillis()));
-        var createNew = !targetLogDate.equals(currentLogDate);
+        var createNew = !targetLogDate.equals(currentLogDate) || loggingTargetFile == null;
 
         if (!createNew) return;
+
+        // 只在切换日志文件（启动后首次写入或跨天）时清理旧日志，而不是每次写入都扫描目录
+        cleanUpLogFiles(cleanUpDate.get());
 
         this.currentLogDate = targetLogDate;
         this.loggingTargetFile = logStore.getFile("mirror-%s.log".formatted(targetLogDate), true);
     }
 
+    /**
+     * 将缓存的操作记录写入日志文件
+     * @apiNote 字符串在调用线程中构建，文件的创建、清理和写入都在 IO 线程中执行，避免阻塞主线程
+     */
     public void pushToLoggingBase()
     {
         if (logStore.initializeFailed())
             return;
 
-        if (loggingTargetFile == null)
-            updateTargetFile();
+        String content;
 
         synchronized (tempEntries)
         {
-            var dateFormat = new SimpleDateFormat("HH:mm:ss");
-
             if (tempEntries.isEmpty())
                 return;
 
-            try (var stream = new FileOutputStream(this.loggingTargetFile, true))
+            var dateFormat = new SimpleDateFormat("HH:mm:ss");
+            var builder = new StringBuilder();
+
+            tempEntries.forEach((p, stack) ->
             {
-                tempEntries.forEach((p, stack) ->
+                for (var entry : stack)
                 {
-                    for (var entry : stack)
-                    {
-                        String msg = "";
-
-                        msg += "[%s] %s triggered operation %s for player %s repeating %s time(s).\n"
-                                .formatted(dateFormat.format(new Date(entry.timeMills())),
-                                        entry.playerName(), entry.operationType(),
-                                        entry.targetPlayerName(), entry.repeatingTimes());
-
-                        try
-                        {
-                            stream.write(msg.getBytes());
-                        }
-                        catch (IOException e)
-                        {
-                            logger.error("Error occurred while saving logs", e);
-                        }
-                    }
-                });
-            }
-            catch (IOException e)
-            {
-                logger.error("Error occurred while saving logs", e);
-            }
+                    builder.append("[%s] %s triggered operation %s for player %s repeating %s time(s).\n"
+                            .formatted(dateFormat.format(new Date(entry.timeMills())),
+                                    entry.playerName(), entry.operationType(),
+                                    entry.targetPlayerName(), entry.repeatingTimes()));
+                }
+            });
 
             this.tempEntries.clear();
+            content = builder.toString();
         }
+
+        // 只在 IO 线程中访问 loggingTargetFile / currentLogDate
+        AsyncFileWriter.appendAsync(() ->
+        {
+            // 每次写入前都检查日期，以便跨天时切换到新的日志文件
+            updateTargetFile();
+            return this.loggingTargetFile;
+        }, content);
     }
 
     @NotNull

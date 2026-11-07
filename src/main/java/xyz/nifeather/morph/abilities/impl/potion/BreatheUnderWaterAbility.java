@@ -15,11 +15,17 @@ public class BreatheUnderWaterAbility extends EffectMorphAbility
         return AbilityNames.CAN_BREATHE_UNDER_WATER;
     }
 
-    private final PotionEffect conduitEffect = new PotionEffect(PotionEffectType.CONDUIT_POWER, 20, 0, true, false);
+    private final PotionEffect conduitEffect = new PotionEffect(PotionEffectType.CONDUIT_POWER, 40, 0, true, false);
 
     @Override
     protected PotionEffect getEffect()
     {
         return conduitEffect;
+    }
+
+    @Override
+    protected int getRefreshInterval()
+    {
+        return 20;
     }
 }

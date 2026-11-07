@@ -51,7 +51,7 @@ public class MorphConfigManager extends PluginConfigManager
         registerUpdateMethods();
     }
 
-    public static final int TARGET_VERSION = 48;
+    public static final int TARGET_VERSION = 49;
 
     @SuppressWarnings("removal")
     private void registerUpdateMethods()
@@ -160,6 +160,22 @@ public class MorphConfigManager extends PluginConfigManager
             updateLogger.info("#40: The sentry logger has been removed since it's not working right, and I don't like to bother about it as we lose 2 follows because of adding it D:");
 
             this.remove(ConfigOptions.ENABLE_SENTRY_LOGGER);
+        });
+
+        addUpdateMethod(49, newConfig ->
+        {
+            updateLogger.info("#49: 'check_update' has been split into 'update-checker.check-on-startup' and 'update-checker.notify-on-join'.");
+
+            //noinspection deprecation
+            var oldValue = newConfig.get(ConfigOptions.CHECK_UPDATE.toString());
+            if (Boolean.FALSE.equals(oldValue))
+            {
+                newConfig.set(ConfigOptions.UPDATE_CHECK_ON_STARTUP.toString(), false);
+                newConfig.set(ConfigOptions.UPDATE_NOTIFY_ON_JOIN.toString(), false);
+            }
+
+            //noinspection deprecation
+            newConfig.set(ConfigOptions.CHECK_UPDATE.toString(), null);
         });
 
         addUpdateMethod(43, newConfig ->
@@ -321,8 +337,49 @@ public class MorphConfigManager extends PluginConfigManager
             reload();
         }
 
+        fillMissingDefaults();
+
         generateIfUnset(ConfigOptions.MASTER_SECRET);
         generateIfUnset(ConfigOptions.UUID_RANDOM_BASE);
+    }
+
+    /**
+     * 比對內建的預設 config.yml，把使用者檔案中缺少的項目補上（保留使用者原有的值），有補才寫回檔案。
+     */
+    private void fillMissingDefaults()
+    {
+        var resource = plugin.getResource("config.yml");
+        if (resource == null) return;
+
+        org.bukkit.configuration.file.YamlConfiguration defaults;
+        try (var reader = new java.io.InputStreamReader(resource, java.nio.charset.StandardCharsets.UTF_8))
+        {
+            defaults = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(reader);
+        }
+        catch (Throwable t)
+        {
+            FeatherMorphMain.getInstance().getSLF4JLogger().warn("Unable to read the default config.yml: " + t.getMessage());
+            return;
+        }
+
+        var current = plugin.getConfig();
+        int added = 0;
+
+        for (var key : defaults.getKeys(true))
+        {
+            // 只補葉節點；區段本身會隨葉節點一起建立
+            if (defaults.isConfigurationSection(key)) continue;
+            if (current.contains(key, true)) continue;
+
+            current.set(key, defaults.get(key));
+            added++;
+        }
+
+        if (added == 0) return;
+
+        FeatherMorphMain.getInstance().getSLF4JLogger().info("Added %s missing option(s) to config.yml".formatted(added));
+        plugin.saveConfig();
+        super.reload();
     }
 
     private void generateIfUnset(ConfigOption<String> option)

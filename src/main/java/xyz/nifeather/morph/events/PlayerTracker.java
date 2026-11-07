@@ -2,8 +2,6 @@ package xyz.nifeather.morph.events;
 
 import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent;
 import com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -15,9 +13,8 @@ import org.jetbrains.annotations.Nullable;
 import xiamomc.pluginbase.Annotations.Initializer;
 import xyz.nifeather.morph.MorphPluginObject;
 
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -57,8 +54,9 @@ public class PlayerTracker extends MorphPluginObject implements Listener
             duplicatedRCs.add(player);
     }
 
-    private final Map<Player, Action> lastRightClick = new Object2ObjectOpenHashMap<>();
-    private final List<Player> duplicatedRCs = Collections.synchronizedList(new ObjectArrayList<>());
+    // 使用线程安全的集合（Folia 下事件可能来自不同的区域线程），并使用 Set 代替 List 以避免 O(n) 的 contains
+    private final Map<Player, Action> lastRightClick = new ConcurrentHashMap<>();
+    private final Set<Player> duplicatedRCs = ConcurrentHashMap.newKeySet();
 
     public boolean isDuplicatedRightClick(Player player)
     {
@@ -207,6 +205,11 @@ public class PlayerTracker extends MorphPluginObject implements Listener
         lastInteractAction.remove(player);
         lastInteractTime.remove(player);
         playerDropTrackingMap.remove(player);
+
+        // 修复内存泄漏：玩家在旁观时退出不会触发 StopSpectating，导致 Player 对象一直被持有
+        spectatingPlayers.remove(player);
+        lastRightClick.remove(player);
+        duplicatedRCs.remove(player);
     }
 
     @Initializer
@@ -282,7 +285,10 @@ public class PlayerTracker extends MorphPluginObject implements Listener
     {
         this.addSchedule(this::update);
 
-        lastRightClick.clear();
-        duplicatedRCs.clear();
+        if (!lastRightClick.isEmpty())
+            lastRightClick.clear();
+
+        if (!duplicatedRCs.isEmpty())
+            duplicatedRCs.clear();
     }
 }

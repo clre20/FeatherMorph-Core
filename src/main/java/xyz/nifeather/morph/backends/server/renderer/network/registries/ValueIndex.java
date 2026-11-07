@@ -16,6 +16,7 @@ public class ValueIndex
     public static final MannequinValues MANNEQUIN = new MannequinValues();
     public static final CopperGolemValues COPPER_GOLEM = new CopperGolemValues();
     public static final SlimeValues SLIME_MAGMA = new SlimeValues();
+    public static final SulfurCubeValues SULFUR_CUBE = new SulfurCubeValues();
     public static final GhastValues GHAST = new GhastValues();
     public static final AbstractHorseValues ABSTRACT_HORSE = new AbstractHorseValues();
     public static final HorseValues HORSE = new HorseValues();

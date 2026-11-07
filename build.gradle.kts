@@ -137,11 +137,6 @@ dependencies {
 
     implementation("com.github.MATRIX-feather:InventoryGui:791e7bdd65")
 
-    implementation("org.bstats:bstats-bukkit:${project.property("bstats_version")}")
-    {
-        exclude("com.google.code.gson", "gson")
-    }
-
     val protocolVersion = if (project.property("protocols_use_local_build") == "true")
         project.property("protocols_local_version")
         else project.property("protocols_version");
@@ -274,6 +269,7 @@ paper {
             permissionRoot + "query",
             permissionRoot + "queryall",
             permissionRoot + "reload",
+            permissionRoot + "version",
             permissionRoot + "stat",
             permissionRoot + "toggle",
 
@@ -304,6 +300,9 @@ publishing {
 }
 
 java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(25))
+    }
     withSourcesJar()
 }
 
@@ -316,7 +315,7 @@ tasks.withType(xyz.jpenilla.runtask.task.AbstractRun::class) {
         languageVersion = JavaLanguageVersion.of(25)
     }
 
-    jvmArgs("-XX:+AllowEnhancedClassRedefinition", "-Dbstats.relocatecheck=false")
+    jvmArgs("-XX:+AllowEnhancedClassRedefinition")
 }
 
 tasks.build {
@@ -348,12 +347,11 @@ tasks.shadowJar {
     {
         minimize()
         relocate("xiamomc.pluginbase", "xyz.nifeather.morph.shaded.pluginbase")
-        relocate("org.bstats", "xyz.nifeather.morph.shaded.bstats")
         relocate("de.tr7zw.changeme.nbtapi", "xyz.nifeather.morph.shaded.nbtapi")
         relocate("de.themoep.inventorygui", "xyz.nifeather.morph.shaded.inventorygui")
     }
 
-    archiveFileName = "feathermorph-${project.property("project_version")}-${project.property("mc_version")}-final.jar"
+    archiveFileName = "feathermorph-v${project.property("project_version")}-final.jar"
 }
 
 // https://stackoverflow.com/a/74848372

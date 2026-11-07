@@ -45,7 +45,7 @@ public class SkillsConfigurationStoreNew extends DirectoryJsonBasedStorage<Skill
             logger.warn("The package version is newer than our implementation! Errors may occur!");
     }
 
-    private static final int TARGET_PACKAGE_VERSION = PackageVersions.DASH;
+    private static final int TARGET_PACKAGE_VERSION = PackageVersions.SULFUR_CUBE_PHYSICS_SKILL;
 
     private void update(int currentVersion)
     {
@@ -203,6 +203,17 @@ public class SkillsConfigurationStoreNew extends DirectoryJsonBasedStorage<Skill
             };
 
             migrator.accept(EntityType.CAMEL);
+        }
+
+        if (currentVersion < PackageVersions.MC_26_2_MOBS)
+        {
+            saveEntityTypeConfiguration(generatedConfigurations, EntityType.SULFUR_CUBE);
+            saveEntityTypeConfiguration(generatedConfigurations, EntityType.PARCHED);
+        }
+
+        if (currentVersion < PackageVersions.SULFUR_CUBE_PHYSICS_SKILL)
+        {
+            saveEntityTypeConfiguration(generatedConfigurations, EntityType.SULFUR_CUBE);
         }
 
         setPackageVersion(TARGET_PACKAGE_VERSION);
@@ -516,5 +527,15 @@ public class SkillsConfigurationStoreNew extends DirectoryJsonBasedStorage<Skill
          * The `dash` skill is introduced for Nautilus / Zombie Nautilus / Camel / Camel Husk
          */
         public static final int DASH = 12;
+
+        /**
+         * Minecraft 26.2 mobs: Sulfur Cube and Parched
+         */
+        public static final int MC_26_2_MOBS = 13;
+
+        /**
+         * Sulfur Cube dedicated archetype active skills
+         */
+        public static final int SULFUR_CUBE_PHYSICS_SKILL = 14;
     }
 }
