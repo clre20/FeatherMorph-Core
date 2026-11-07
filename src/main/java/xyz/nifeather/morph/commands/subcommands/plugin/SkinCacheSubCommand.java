@@ -1,5 +1,6 @@
 package xyz.nifeather.morph.commands.subcommands.plugin;
 
+import xyz.nifeather.morph.messages.strings.HelpStrings;
 import com.destroystokyo.paper.profile.CraftPlayerProfile;
 import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -58,7 +59,7 @@ public class SkinCacheSubCommand extends MorphPluginObject implements IConvertib
     @Override
     public FormattableMessage getHelpMessage()
     {
-        return new FormattableMessage(plugin, "skin_cache");
+        return HelpStrings.skinCacheDescription();
     }
 
     private final PlayerSkinProvider skinProvider = PlayerSkinProvider.getInstance();
