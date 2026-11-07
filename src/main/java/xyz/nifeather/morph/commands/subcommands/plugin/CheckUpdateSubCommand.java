@@ -22,7 +22,7 @@ public class CheckUpdateSubCommand extends MorphPluginObject implements IConvert
     @Override
     public @NotNull String name()
     {
-        return "check_update";
+        return "version";
     }
 
     @Override

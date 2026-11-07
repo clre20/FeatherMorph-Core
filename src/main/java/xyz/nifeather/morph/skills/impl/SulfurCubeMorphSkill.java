@@ -45,18 +45,18 @@ public class SulfurCubeMorphSkill extends MorphSkill<NoOpConfiguration>
     @Override
     public int executeSkill(Player player, DisguiseState state, NoOpConfiguration option) throws ExecutionErrorException
     {
+        // 依原版型態 ID（最後符合者）決定主動技能；沒有對應技能的型態（sticky、high_resistance、hot、explosive）不提供主動技能
         var archetype = CubeArchetype.fromPlayer(player);
 
-        return switch (archetype)
+        return switch (archetype.primaryId())
         {
-            case EMPTY -> executeEmpty(player);
-            case REGULAR -> executeRegular(player);
-            case BOUNCY -> executeBouncy(player);
-            case SLOW_FLAT -> executeSlowFlat(player);
-            case FAST_FLAT -> executeFastFlat(player);
-            case LIGHT -> executeLight(player);
-            case FAST_SLIDING -> executeFastSliding(player);
-            case SLOW_SLIDING -> executeSlowSliding(player);
+            case "regular" -> executeRegular(player);
+            case "bouncy", "slow_bouncy" -> executeBouncy(player);
+            case "slow_flat" -> executeSlowFlat(player);
+            case "fast_flat" -> executeFastFlat(player);
+            case "light" -> executeLight(player);
+            case "fast_sliding" -> executeFastSliding(player);
+            case "slow_sliding" -> executeSlowSliding(player);
             default -> executeEmpty(player);
         };
     }

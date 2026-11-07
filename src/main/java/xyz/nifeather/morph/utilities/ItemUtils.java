@@ -112,7 +112,7 @@ public class ItemUtils
 
     public static boolean alwaysAppendReferenceTooltip(ItemStack stack)
     {
-        var nms = net.minecraft.world.item.ItemStack.fromBukkitCopy(stack);
+        var nms = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(stack);
         var customData = nms.getComponents().get(DataComponents.CUSTOM_DATA);
         if (customData == null)
             return true;
@@ -122,7 +122,7 @@ public class ItemUtils
 
     public static boolean skipMagicBottleSetup(ItemStack stack)
     {
-        var nms = net.minecraft.world.item.ItemStack.fromBukkitCopy(stack);
+        var nms = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(stack);
         var customData = nms.getComponents().get(DataComponents.CUSTOM_DATA);
         if (customData == null)
             return false;
@@ -132,20 +132,20 @@ public class ItemUtils
 
     public static ItemStack writeMagicItemData(ItemStack inputStack, String disguiseIdentifier)
     {
-        var nms = net.minecraft.world.item.ItemStack.fromBukkitCopy(inputStack);
+        var nms = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(inputStack);
         var customData = nms.getComponents().get(DataComponents.CUSTOM_DATA);
         if (customData == null) customData = CustomData.EMPTY;
 
         customData = customData.update(tag -> tag.putString(MAGIC_BOTTLE_STORE_ITEM_KEY, disguiseIdentifier));
         nms.set(DataComponents.CUSTOM_DATA, customData);
 
-        return nms.asBukkitMirror();
+        return org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(nms);
     }
 
     @Nullable
     public static String readMagicItemData(ItemStack stack)
     {
-        var nms = net.minecraft.world.item.ItemStack.fromBukkitCopy(stack);
+        var nms = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(stack);
         var customData = nms.getComponents().get(DataComponents.CUSTOM_DATA);
 
         if (customData == null || !customData.contains(MAGIC_BOTTLE_STORE_ITEM_KEY))
@@ -156,7 +156,7 @@ public class ItemUtils
 
     public static boolean isMagicItem(ItemStack stack)
     {
-        var nms = net.minecraft.world.item.ItemStack.fromBukkitCopy(stack);
+        var nms = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(stack);
         var customData = nms.getComponents().get(DataComponents.CUSTOM_DATA);
 
         if (customData == null || !customData.contains(MAGIC_BOTTLE_ITEM_KEY)) return false;
@@ -172,19 +172,19 @@ public class ItemUtils
 
     public static ItemStack buildDisguiseToolFrom(ItemStack stack)
     {
-        var nms = net.minecraft.world.item.ItemStack.fromBukkitCopy(stack);
+        var nms = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(stack);
         var customData = nms.getComponents().get(DataComponents.CUSTOM_DATA);
         if (customData == null) customData = CustomData.EMPTY;
 
         customData = customData.update(tag -> tag.putBoolean(SKILL_ACTIVATE_ITEM_KEY, true));
         nms.set(DataComponents.CUSTOM_DATA, customData);
 
-        return nms.asBukkitMirror();
+        return org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(nms);
     }
 
     public static boolean isDisguiseTool(ItemStack stack)
     {
-        var nms = net.minecraft.world.item.ItemStack.fromBukkitCopy(stack);
+        var nms = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(stack);
         var customData = nms.getComponents().get(DataComponents.CUSTOM_DATA);
 
         if (customData == null || !customData.contains(SKILL_ACTIVATE_ITEM_KEY)) return false;

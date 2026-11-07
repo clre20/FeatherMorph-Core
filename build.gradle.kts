@@ -269,6 +269,7 @@ paper {
             permissionRoot + "query",
             permissionRoot + "queryall",
             permissionRoot + "reload",
+            permissionRoot + "version",
             permissionRoot + "stat",
             permissionRoot + "toggle",
 

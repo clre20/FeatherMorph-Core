@@ -4,8 +4,12 @@ root:
   # The message pattern used for this plugin to display messages for players
   message_pattern: <color:#dddddd>≡ FM » <message>
 
-  # Should we check updates automatically?
-  check_update: true
+  # Update checker (GitHub Releases of clre20/FeatherMorph-Core). Results are cached for 10 minutes; there is no periodic polling.
+  update-checker:
+    # Check for updates asynchronously once when the server starts
+    check-on-startup: true
+    # Notify players with the feathermorph.version permission 3 seconds after they join when a new version is available
+    notify-on-join: true
 
   # Allow players acquire morphs by killing mobs and other players?
   allow_acquire_morphs: true
@@ -62,9 +66,9 @@ root:
 
   # Language options
   language:
-    # Sets the default language for the plugin
+    # Sets the default language for the plugin (zh_tw = 繁體中文, zh_cn, en_us, ru_ru)
     # This will affect most ingame messages and bossbar title
-    code: en_us
+    code: zh_tw
 
     # Enable single-language mode?
     # Once enabled, all ingame messages will be forced to use the default language.
@@ -315,8 +319,11 @@ root:
 
   # Sulfur cube options
   sulfur_cube:
-    # Whether sulfur cube TNT explosion destroys blocks (default: false, only damages entities)
+    # Whether an explosive sulfur cube destroys blocks. Vanilla also requires the mobGriefing game rule (default: false, only damages entities)
     tnt_breaks_blocks: false
 
+    # While holding a block, ignore damage types in #minecraft:sulfur_cube_with_block_immune_to (melee, arrows, falling, explosions...) like a vanilla sulfur cube. Knockback still applies.
+    vanilla_damage_immunity: true
+
   # Do not touch unless you know what you're doing!
-  version: 48
+  version: 49

@@ -1,125 +1,231 @@
 package xyz.nifeather.morph.misc.sulfurcube;
 
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.world.entity.SulfurCubeArchetype;
 import org.bukkit.Material;
-import org.bukkit.craftbukkit.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public enum CubeArchetype
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * 硫磺立方體「身體方塊」對應的原版型態集合。
+ * <p>
+ * 所有資料都直接取自伺服器的 {@code minecraft:sulfur_cube_archetype} registry
+ * 與 {@code #minecraft:sulfur_cube_archetype/*}、{@code #minecraft:sulfur_cube_swallowable} 物品標籤，
+ * 因此會與原版（以及伺服器上的資料包）完全一致，不寫死任何方塊清單或數值。
+ * <p>
+ * 原版的物品標籤以「物品種類」為單位判斷，所以結果依 {@link Material} 快取；
+ * 資料包重載時呼叫 {@link #invalidateCache()} 清除。快取可在 PacketEvents 的網路執行緒上讀取，因此使用 ConcurrentHashMap。
+ */
+public final class CubeArchetype
 {
-    EMPTY,
-    REGULAR,
-    BOUNCY,
-    SLOW_FLAT,
-    FAST_FLAT,
-    LIGHT,
-    FAST_SLIDING,
-    SLOW_SLIDING,
-    TNT,
-    MAGMA,
-    CACTUS,
-    BEEHIVE,
-    SOUL_SAND;
+    /** 沒有吞下方塊（或手上的方塊不可被吞下）。 */
+    public static final CubeArchetype EMPTY = new CubeArchetype(List.of(), null);
 
-    public static boolean isSwallowable(@Nullable ItemStack item)
-    {
-        if (item == null || item.getType() == Material.AIR || !item.getType().isBlock())
-            return false;
+    private static final Map<Material, CubeArchetype> archetypeCache = new ConcurrentHashMap<>();
+    private static final Map<Material, Boolean> swallowableCache = new ConcurrentHashMap<>();
 
-        var nmsStack = CraftItemStack.asNMSCopy(item);
-        return !nmsStack.isEmpty() && nmsStack.is(ItemTags.SULFUR_CUBE_SWALLOWABLE);
-    }
+    private final List<SulfurCubeArchetype> archetypes;
 
     @Nullable
-    public static ItemStack getActiveItem(@Nullable org.bukkit.entity.Player player)
+    private final ResourceKey<SulfurCubeArchetype> primaryKey;
+
+    // 以下欄位的合併方式與原版 SulfurCube#collectEquipmentChanges 相同
+    private final boolean buoyant;
+    private final Optional<SulfurCubeArchetype.ExplosionData> explosion;
+    private final List<SulfurCubeArchetype.ContactDamage> contactDamages;
+    private final SulfurCubeArchetype.KnockbackModifiers knockbackModifiers;
+    private final SulfurCubeArchetype.SoundSettings soundSettings;
+
+    private CubeArchetype(List<SulfurCubeArchetype> archetypes, @Nullable ResourceKey<SulfurCubeArchetype> primaryKey)
+    {
+        this.archetypes = List.copyOf(archetypes);
+        this.primaryKey = primaryKey;
+
+        boolean buoyant = false;
+        Optional<SulfurCubeArchetype.ExplosionData> explosion = Optional.empty();
+        var contactDamages = new ArrayList<SulfurCubeArchetype.ContactDamage>();
+        var knockback = SulfurCubeArchetype.DEFAULT_KNOCKBACK_MODIFIERS;
+        var sound = SulfurCubeArchetype.DEFAULT_SOUND_SETTINGS;
+
+        for (var archetype : archetypes)
+        {
+            if (archetype.buoyant()) buoyant = true;
+            if (archetype.explosion().isPresent()) explosion = archetype.explosion();
+            archetype.contactDamage().ifPresent(contactDamages::add);
+
+            // 原版：後面符合的型態覆蓋前面的擊退與音效設定
+            knockback = archetype.knockbackModifiers();
+            sound = archetype.soundSettings();
+        }
+
+        this.buoyant = buoyant;
+        this.explosion = explosion;
+        this.contactDamages = List.copyOf(contactDamages);
+        this.knockbackModifiers = knockback;
+        this.soundSettings = sound;
+    }
+
+    // region Resolve
+
+    public static void invalidateCache()
+    {
+        archetypeCache.clear();
+        swallowableCache.clear();
+    }
+
+    /**
+     * 原版判斷：物品屬於 {@code #minecraft:sulfur_cube_swallowable}。
+     */
+    public static boolean isSwallowable(@Nullable ItemStack item)
+    {
+        if (item == null || item.isEmpty()) return false;
+
+        var type = item.getType();
+        if (!type.isItem()) return false;
+
+        return swallowableCache.computeIfAbsent(type, CubeArchetype::computeSwallowable);
+    }
+
+    private static boolean computeSwallowable(Material type)
+    {
+        var nmsItem = CraftMagicNumbers.getItem(type);
+        if (nmsItem == null) return false;
+
+        return nmsItem.builtInRegistryHolder().is(ItemTags.SULFUR_CUBE_SWALLOWABLE);
+    }
+
+    /**
+     * 玩家目前代表「身體方塊」的物品：副手優先，其次主手；都不可吞下時回傳 null。
+     */
+    @Nullable
+    public static ItemStack getActiveItem(@Nullable Player player)
     {
         if (player == null) return null;
+
         var inventory = player.getInventory();
+
         var offhand = inventory.getItemInOffHand();
-        if (isSwallowable(offhand))
-            return offhand;
+        if (isSwallowable(offhand)) return offhand;
 
         var mainhand = inventory.getItemInMainHand();
-        if (isSwallowable(mainhand))
-            return mainhand;
+        if (isSwallowable(mainhand)) return mainhand;
 
         return null;
     }
 
-    public static CubeArchetype fromPlayer(@Nullable org.bukkit.entity.Player player)
+    @NotNull
+    public static CubeArchetype fromPlayer(@Nullable Player player)
     {
-        var item = getActiveItem(player);
-        return fromItemStack(item);
+        return fromItemStack(getActiveItem(player));
     }
 
+    @NotNull
     public static CubeArchetype fromItemStack(@Nullable ItemStack item)
     {
-        if (!isSwallowable(item))
-            return EMPTY;
+        if (!isSwallowable(item)) return EMPTY;
 
-        var type = item.getType();
-        if (type == Material.TNT)
-            return TNT;
+        //noinspection DataFlowIssue isSwallowable() 已確保非 null
+        return fromMaterial(item.getType());
+    }
 
-        if (type == Material.MAGMA_BLOCK)
-            return MAGMA;
+    @NotNull
+    public static CubeArchetype fromMaterial(@Nullable Material type)
+    {
+        if (type == null) return EMPTY;
 
-        if (type == Material.CACTUS)
-            return CACTUS;
+        return archetypeCache.computeIfAbsent(type, CubeArchetype::computeArchetype);
+    }
 
-        if (type == Material.BEEHIVE || type == Material.BEE_NEST || type == Material.HONEY_BLOCK)
-            return BEEHIVE;
+    /**
+     * 等同原版 {@code SulfurCube#matchingArchetypes}：依 registry 順序收集所有包含此物品的型態。
+     */
+    private static CubeArchetype computeArchetype(Material type)
+    {
+        var nmsItem = CraftMagicNumbers.getItem(type);
+        if (nmsItem == null) return EMPTY;
 
-        if (type == Material.SOUL_SAND || type == Material.SOUL_SOIL)
-            return SOUL_SAND;
+        var holder = nmsItem.builtInRegistryHolder();
+        if (!holder.is(ItemTags.SULFUR_CUBE_SWALLOWABLE)) return EMPTY;
 
-        var nmsStack = CraftItemStack.asNMSCopy(item);
+        var registry = MinecraftServer.getServer()
+                .registryAccess()
+                .lookupOrThrow(Registries.SULFUR_CUBE_ARCHETYPE);
 
-        if (nmsStack.is(ItemTags.SULFUR_CUBE_ARCHETYPE_BOUNCY))
-            return BOUNCY;
-        if (nmsStack.is(ItemTags.SULFUR_CUBE_ARCHETYPE_SLOW_FLAT))
-            return SLOW_FLAT;
-        if (nmsStack.is(ItemTags.SULFUR_CUBE_ARCHETYPE_FAST_FLAT))
-            return FAST_FLAT;
-        if (nmsStack.is(ItemTags.SULFUR_CUBE_ARCHETYPE_LIGHT))
-            return LIGHT;
-        if (nmsStack.is(ItemTags.SULFUR_CUBE_ARCHETYPE_FAST_SLIDING))
-            return FAST_SLIDING;
-        if (nmsStack.is(ItemTags.SULFUR_CUBE_ARCHETYPE_SLOW_SLIDING))
-            return SLOW_SLIDING;
-        if (nmsStack.is(ItemTags.SULFUR_CUBE_ARCHETYPE_REGULAR))
-            return REGULAR;
+        var matched = new ArrayList<SulfurCubeArchetype>();
+        ResourceKey<SulfurCubeArchetype> primary = null;
 
-        return REGULAR;
+        for (var entry : registry.listElements().toList())
+        {
+            var archetype = entry.value();
+            if (archetype.items().contains(holder))
+            {
+                matched.add(archetype);
+                primary = entry.key();
+            }
+        }
+
+        return matched.isEmpty() ? EMPTY : new CubeArchetype(matched, primary);
+    }
+
+    // endregion Resolve
+
+    public boolean isEmpty()
+    {
+        return archetypes.isEmpty();
+    }
+
+    /**
+     * 所有符合的原版型態（依 registry 順序）。
+     */
+    public List<SulfurCubeArchetype> archetypes()
+    {
+        return archetypes;
+    }
+
+    /**
+     * 最後一個符合的型態 ID 路徑（例如 {@code bouncy}），沒有則為空字串。
+     * 原版以最後符合者決定擊退與音效，技能也以此為準。
+     */
+    @NotNull
+    public String primaryId()
+    {
+        return primaryKey == null ? "" : primaryKey.identifier().getPath();
     }
 
     public boolean isBuoyant()
     {
-        return switch (this)
-        {
-            case REGULAR, BOUNCY, LIGHT, EMPTY, CACTUS, BEEHIVE -> true;
-            case SLOW_FLAT, FAST_FLAT, FAST_SLIDING, SLOW_SLIDING, TNT, MAGMA, SOUL_SAND -> false;
-        };
+        return buoyant;
     }
 
-    public boolean isSinking()
+    public Optional<SulfurCubeArchetype.ExplosionData> explosion()
     {
-        return this == SLOW_FLAT || this == MAGMA || this == SOUL_SAND;
+        return explosion;
     }
 
-    public boolean isSliding()
+    public List<SulfurCubeArchetype.ContactDamage> contactDamages()
     {
-        return this == FAST_SLIDING || this == SLOW_SLIDING;
+        return contactDamages;
     }
 
-    public boolean isSticky()
+    public SulfurCubeArchetype.KnockbackModifiers knockbackModifiers()
     {
-        return this == BEEHIVE || this == SOUL_SAND;
+        return knockbackModifiers;
     }
 
-    public boolean hasContactDamage()
+    public SulfurCubeArchetype.SoundSettings soundSettings()
     {
-        return this == MAGMA || this == CACTUS;
+        return soundSettings;
     }
 }

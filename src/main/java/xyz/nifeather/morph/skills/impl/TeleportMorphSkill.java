@@ -81,6 +81,15 @@ public class TeleportMorphSkill extends MorphSkill<TeleportConfiguration>
                 loc.setY(loc.getY() - player.getBoundingBox().getHeight() + 1);
         }
 
+        // 26.3：末影人與界伏蚌不再傳送到基岩上
+        var landingGround = loc.getWorld().getBlockAt(loc.getBlockX(), loc.getBlockY() - 1, loc.getBlockZ());
+        if (landingGround.getType() == Material.BEDROCK)
+        {
+            sendDenyMessageToPlayer(player, SkillStrings.targetNotSuitableString());
+
+            return 20;
+        }
+
         //传送
         playSoundToNearbyPlayers(player, 10,
                 Key.key("minecraft", "entity.enderman.teleport"), Sound.Source.HOSTILE);

@@ -37,6 +37,14 @@ public class SulfurCubeWatcher extends AgeableMobWatcher
         updateSwallowedItem();
     }
 
+    /**
+     * 同步原版 SulfurCube.MAX_FUSE，讓客戶端顯示點燃中的閃爍；-1 表示未點燃。
+     */
+    public void setMaxFuse(int maxFuse)
+    {
+        this.writePersistent(ValueIndex.SULFUR_CUBE.MAX_FUSE, maxFuse);
+    }
+
     public SulfurCubeWatcher(Player bindingPlayer)
     {
         super(bindingPlayer, EntityType.SULFUR_CUBE);

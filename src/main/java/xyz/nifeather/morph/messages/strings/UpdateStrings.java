@@ -17,7 +17,7 @@ public class UpdateStrings extends AbstractMorphStrings
 
     public static FormattableMessage currentIsNewer()
     {
-        return getFormattable(getKey("current_is_newer"), "[Fallback] <gold>当前版本比<mc_version>的最新版更新...? 可能哪里出问题了...");
+        return getFormattable(getKey("current_is_newer"), "[Fallback] <gold>当前版本比 GitHub 上<mc_version>的最新版本更新（开发版）");
     }
 
     public static FormattableMessage notListed()

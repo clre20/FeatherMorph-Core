@@ -159,7 +159,7 @@ public class PlayerOperationHandle extends MorphPluginObject implements IOperati
         //如果玩家处于冒险模式并且无法破坏目标方块，也不要做任何事情，只返回success来允许播放动画
         if (player.getGameMode() == GameMode.ADVENTURE)
         {
-            var item = net.minecraft.world.item.ItemStack.fromBukkitCopy(
+            var item = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(
                     Objects.requireNonNull(player.getEquipment(), "Null equipment?").getItemInMainHand());
 
             //todo: test this
@@ -340,7 +340,7 @@ public class PlayerOperationHandle extends MorphPluginObject implements IOperati
 
         if (nmsPlayer.isUsingItem()
                 && ItemUtils.isContinuousUsable(ourHandItem)
-                && nmsPlayer.getUseItem().getBukkitStack().getType() == ourHandItem)
+                && org.bukkit.craftbukkit.util.CraftMagicNumbers.getMaterial(nmsPlayer.getUseItem().getItem()) == ourHandItem)
         {
             nmsPlayer.releaseUsingItem();
         }

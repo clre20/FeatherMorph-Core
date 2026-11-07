@@ -68,7 +68,8 @@ public class OptionSubCommand extends MorphPluginObject implements IConvertibleB
         subCommands.add(getToggle("debug_output", ConfigOptions.DEBUG_OUTPUT));
         subCommands.add(getToggle("revealing", ConfigOptions.REVEALING));
 
-        subCommands.add(getToggle("check_update", ConfigOptions.CHECK_UPDATE));
+        subCommands.add(getToggle("update_check_on_startup", ConfigOptions.UPDATE_CHECK_ON_STARTUP));
+        subCommands.add(getToggle("update_notify_on_join", ConfigOptions.UPDATE_NOTIFY_ON_JOIN));
         subCommands.add(getToggle("allow_acquire_morphs", ConfigOptions.ALLOW_ACQUIRE_MORPHS));
 
         subCommands.add(getToggle("log_outgoing_packets", ConfigOptions.LOG_OUTGOING_PACKETS));
