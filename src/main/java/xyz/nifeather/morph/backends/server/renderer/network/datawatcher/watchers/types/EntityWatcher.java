@@ -123,9 +123,11 @@ public class EntityWatcher extends SingleWatcher
                 new Vector3d(playerMotion.getX(), playerMotion.getY(), playerMotion.getZ())
         );
 
+        // 順序與原版 ServerEntity#sendPairingData 相同：生成 → 實體資料 → 裝備
+        // （Geyser 依原版順序轉譯，例如硫磺立方體的內部方塊需要在實體資料之後套用）
         packets.add(spawnPacket);
-        packets.add(getEquipmentPacket());
         packets.add(PacketFactory.buildFullMetaPacket(player, this));
+        packets.add(getEquipmentPacket());
 
         // 载具
         if (player.getVehicle() != null)

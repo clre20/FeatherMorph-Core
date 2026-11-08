@@ -117,19 +117,29 @@ public class SulfurCubeWatcher extends AgeableMobWatcher
         boolean swallowable = CubeArchetype.isSwallowable(item);
         ItemStack displayItem = (swallowable && item != null) ? item.asOne() : null;
 
-        var list = new ObjectArrayList<Equipment>();
-        list.add(new Equipment(EquipmentSlot.BODY, displayItem != null ? SpigotConversionUtil.fromBukkitItemStack(displayItem) : ProtocolEquipment.peAir));
-        list.add(new Equipment(EquipmentSlot.MAIN_HAND, ProtocolEquipment.peAir));
-        list.add(new Equipment(EquipmentSlot.OFF_HAND, ProtocolEquipment.peAir));
-        list.add(new Equipment(EquipmentSlot.HELMET, ProtocolEquipment.peAir));
-        list.add(new Equipment(EquipmentSlot.CHEST_PLATE, ProtocolEquipment.peAir));
-        list.add(new Equipment(EquipmentSlot.LEGGINGS, ProtocolEquipment.peAir));
-        list.add(new Equipment(EquipmentSlot.BOOTS, ProtocolEquipment.peAir));
+        var list = PacketFactory.sulfurCubeEquipments(displayItem);
+        markBodySent(list);
 
         var packet = new WrapperPlayServerEntityEquipment(player.getEntityId(), list);
         PacketFactory.markEquipmentPacket(packet);
 
         return packet;
+    }
+
+    /** 最後一次送給客戶端的 BODY 物品種類，用來避免重複送出（Geyser 每收到一次就會播一次吸入音效）。 */
+    private volatile com.github.retrooper.packetevents.protocol.item.type.ItemType lastSentBodyType;
+
+    /**
+     * 記錄這次要送出的 BODY 物品。
+     *
+     * @return 與上一次送出的內容不同時回傳 true
+     */
+    public boolean markBodySent(java.util.List<com.github.retrooper.packetevents.protocol.player.Equipment> equipments)
+    {
+        var type = equipments.isEmpty() ? null : equipments.get(0).getItem().getType();
+        var changed = type != lastSentBodyType;
+        lastSentBodyType = type;
+        return changed;
     }
 
     public void updateSwallowedItem()

@@ -885,8 +885,15 @@ public class DisguiseState extends MorphPluginObject
                     ? getPlayerDisplay().append((revLevel == RevealingHandler.RevealingLevel.REVEALED ? MorphStrings.revealed() : MorphStrings.partialRevealed()).createComponent(locale))
                     : getPlayerDisplay();
 
-            msgConfig = new CachedMessageStatus(magicBit,
-                    msg.resolve("what", display).resolve("icon", IconLookup.instance().lookupDisguiseIcon(this)).createComponent(locale));
+            // 圖示是 Java 版專屬的物件文字元件，基岩版（Geyser）無法顯示，只會變成一段原始文字，所以基岩版玩家不放圖示
+            var bedrock = xyz.nifeather.morph.utilities.BedrockUtils.isBedrockPlayer(player);
+            var icon = bedrock ? Component.empty() : IconLookup.instance().lookupDisguiseIcon(this);
+
+            var actionBar = msg.resolve("what", display).resolve("icon", icon).createComponent(locale);
+            if (bedrock)
+                actionBar = actionBar.replaceText(b -> b.match("^\\s+").once().replacement(""));
+
+            msgConfig = new CachedMessageStatus(magicBit, actionBar);
 
             this.cachedMessageStatus = msgConfig;
         }

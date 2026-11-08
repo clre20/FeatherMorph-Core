@@ -23,7 +23,7 @@ public abstract class EffectMorphAbility extends NoOpOptionAbility
         if (shouldApplyEffect(player))
         {
             if (plugin.getCurrentTick() % this.refreshInterval == 0)
-                player.addPotionEffect(getEffect());
+                player.addPotionEffect(xyz.nifeather.morph.utilities.EffectUtils.extended(getEffect()));
         }
 
         return true;
@@ -35,7 +35,7 @@ public abstract class EffectMorphAbility extends NoOpOptionAbility
         if (super.applyToPlayer(player, state))
         {
             if (shouldApplyEffect(player))
-                player.addPotionEffect(getEffect());
+                player.addPotionEffect(xyz.nifeather.morph.utilities.EffectUtils.extended(getEffect()));
             return true;
         }
         else
@@ -52,6 +52,7 @@ public abstract class EffectMorphAbility extends NoOpOptionAbility
     @Initializer
     private void load()
     {
+        // 刷新間隔依原本的時間計算；實際給的效果多 1 秒（EffectUtils），所以刷新時效果不會快到期
         var effect = this.getEffect();
         var interval = this.getRefreshInterval();
 

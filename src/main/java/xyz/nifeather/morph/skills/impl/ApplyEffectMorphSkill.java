@@ -60,7 +60,7 @@ public class ApplyEffectMorphSkill extends MorphSkill<EffectConfiguration>
 
         players.forEach(p ->
         {
-            p.addPotionEffect(effect);
+            p.addPotionEffect(xyz.nifeather.morph.utilities.EffectUtils.extended(effect));
             p.playSound(sound);
 
             if (option.showGuardian())
