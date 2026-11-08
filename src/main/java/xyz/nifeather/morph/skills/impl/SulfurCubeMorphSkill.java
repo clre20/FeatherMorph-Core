@@ -173,7 +173,7 @@ public class SulfurCubeMorphSkill extends MorphSkill<NoOpConfiguration>
                 living.damage(6.0, player);
                 var knockbackDir = living.getLocation().toVector().subtract(loc.toVector()).setY(0.4).normalize().multiply(0.95);
                 living.setVelocity(knockbackDir);
-                living.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 1));
+                living.addPotionEffect(xyz.nifeather.morph.utilities.EffectUtils.extended(new PotionEffect(PotionEffectType.SLOWNESS, 60, 1)));
             }
         }
     }
@@ -217,8 +217,8 @@ public class SulfurCubeMorphSkill extends MorphSkill<NoOpConfiguration>
         world.playSound(loc, "block.wool.step", 1.2f, 1.5f);
         world.spawnParticle(Particle.POOF, loc.clone().add(0, 0.3, 0), 20, 0.5, 0.3, 0.5, 0.05);
 
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, 100, 0));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 100, 1));
+        player.addPotionEffect(xyz.nifeather.morph.utilities.EffectUtils.extended(new PotionEffect(PotionEffectType.SLOW_FALLING, 100, 0)));
+        player.addPotionEffect(xyz.nifeather.morph.utilities.EffectUtils.extended(new PotionEffect(PotionEffectType.JUMP_BOOST, 100, 1)));
 
         return 80; // 4.0s cooldown
     }
@@ -293,8 +293,8 @@ public class SulfurCubeMorphSkill extends MorphSkill<NoOpConfiguration>
             if (entity != player && entity instanceof LivingEntity living && canTarget(living))
             {
                 living.damage(3.5, player);
-                living.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 70, 2));
-                living.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 30, 0));
+                living.addPotionEffect(xyz.nifeather.morph.utilities.EffectUtils.extended(new PotionEffect(PotionEffectType.SLOWNESS, 70, 2)));
+                living.addPotionEffect(xyz.nifeather.morph.utilities.EffectUtils.extended(new PotionEffect(PotionEffectType.BLINDNESS, 30, 0)));
             }
         }
 

@@ -65,8 +65,17 @@ public class EquipmentPacketListener extends ProtocolListener
 
         if (watcher.getEntityType() == org.bukkit.entity.EntityType.SULFUR_CUBE)
         {
-            event.markForReEncode(true);
             var equipments = PacketFactory.getPacketeventsEquipments(sourcePlayer, watcher);
+
+            // 吞下的方塊沒變（例如只是切換快捷欄）就不送，和原版一樣只在方塊改變時才通知客戶端
+            if (watcher instanceof xyz.nifeather.morph.backends.server.renderer.network.datawatcher.watchers.types.slimemagma.SulfurCubeWatcher cubeWatcher
+                    && !cubeWatcher.markBodySent(equipments))
+            {
+                event.setCancelled(true);
+                return;
+            }
+
+            event.markForReEncode(true);
             packet.setEquipment(equipments);
             return;
         }

@@ -54,7 +54,7 @@ public class SplashPotionSkill extends MorphSkill<NoOpConfiguration>
 
         var meta = thrownPotion.getPotionMeta();
         var info = validTypes[ThreadLocalRandom.current().nextInt(0, validTypes.length)];
-        var potionEffect = new PotionEffect(info.type, info.duration, info.amplifier, false, true);
+        var potionEffect = xyz.nifeather.morph.utilities.EffectUtils.extended(new PotionEffect(info.type, info.duration, info.amplifier, false, true));
         meta.addCustomEffect(potionEffect, true);
         meta.setColor(info.type().getColor());
 

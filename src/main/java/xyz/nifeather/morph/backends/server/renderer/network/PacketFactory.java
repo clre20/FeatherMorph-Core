@@ -101,19 +101,24 @@ public class PacketFactory extends MorphPluginObject
             boolean swallowable = xyz.nifeather.morph.misc.sulfurcube.CubeArchetype.isSwallowable(item);
             ItemStack displayItem = (swallowable && item != null) ? item.asOne() : null;
 
-            var list = new ObjectArrayList<Equipment>();
-            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.BODY,
-                    displayItem != null ? io.github.retrooper.packetevents.util.SpigotConversionUtil.fromBukkitItemStack(displayItem) : ProtocolEquipment.peAir));
-            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.MAIN_HAND, ProtocolEquipment.peAir));
-            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.OFF_HAND, ProtocolEquipment.peAir));
-            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.HELMET, ProtocolEquipment.peAir));
-            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.CHEST_PLATE, ProtocolEquipment.peAir));
-            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.LEGGINGS, ProtocolEquipment.peAir));
-            list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.BOOTS, ProtocolEquipment.peAir));
-            return list;
+            return sulfurCubeEquipments(displayItem);
         }
 
         return ProtocolEquipment.toPEEquipmentList(equipment);
+    }
+
+    /**
+     * 硫磺立方體的裝備封包內容：只送 BODY（吞下的方塊），與原版伺服器相同。
+     * <p>
+     * 不可以附帶「主手＝空氣」等其他欄位：Geyser 會把 BODY 轉成基岩版立方體的手持物品來顯示內部方塊，
+     * 若同一個封包裡還有主手欄位，Geyser 處理完後會用主手（空氣）覆蓋掉，基岩版玩家就看不到內部方塊。
+     */
+    public static List<Equipment> sulfurCubeEquipments(@org.jetbrains.annotations.Nullable ItemStack displayItem)
+    {
+        var list = new ObjectArrayList<Equipment>();
+        list.add(new Equipment(com.github.retrooper.packetevents.protocol.player.EquipmentSlot.BODY,
+                displayItem != null ? io.github.retrooper.packetevents.util.SpigotConversionUtil.fromBukkitItemStack(displayItem) : ProtocolEquipment.peAir));
+        return list;
     }
 
     public static void markEquipmentPacket(WrapperPlayServerEntityEquipment wrapper)

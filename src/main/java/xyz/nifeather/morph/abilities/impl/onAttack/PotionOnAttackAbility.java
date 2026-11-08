@@ -55,6 +55,6 @@ public class PotionOnAttackAbility extends OnAttackAbility<PotionEffectOption>
         if (effectType == null) return;
 
         var effect = new PotionEffect(effectType, option.duration, option.amplifier, false);
-        hurt.addPotionEffect(effect);
+        hurt.addPotionEffect(xyz.nifeather.morph.utilities.EffectUtils.extended(effect));
     }
 }
