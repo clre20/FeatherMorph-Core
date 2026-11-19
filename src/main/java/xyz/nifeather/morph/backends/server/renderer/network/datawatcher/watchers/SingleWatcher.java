@@ -470,7 +470,7 @@ public abstract class SingleWatcher extends MorphPluginObject
         var originalData = packetWrapper.getEntityMetadata();
 
         // 如果Meta包里有咱的标记，那么移除标记并返回原包
-        if (originalData.removeIf(wrapped -> wrapped.getValue().equals(PacketFactory.MARK_DONT_PROCESS)))
+        if (PacketFactory.stripMarker(originalData))
         {
             packetWrapper.setEntityMetadata(originalData);
             return;

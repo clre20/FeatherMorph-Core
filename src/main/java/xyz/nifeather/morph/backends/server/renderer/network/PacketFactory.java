@@ -30,7 +30,7 @@ public class PacketFactory extends MorphPluginObject
 
         // Add our packet identifier!
         if (!watcher.readEntryOrDefault(CustomEntries.DONT_INCLUDE_PACKET_IDENTIFIER, false))
-            wrappedDataValues.add(new EntityData<>(99, EntityDataTypes.STRING, MARK_DONT_PROCESS));
+            wrappedDataValues.add(new EntityData<>(MARK_INDEX, EntityDataTypes.STRING, MARK_DONT_PROCESS));
 
         valuesToSent.forEach((single, val) ->
         {
@@ -43,6 +43,22 @@ public class PacketFactory extends MorphPluginObject
 
     public static final String MARK_DONT_PROCESS = "~FEATHERMORPH GENERATED METADATA, THIS MESSAGE SHOULD BE REMOVED, OR SOMETHING MAY GONE WRONG!";
 
+    /**
+     * 標記資料使用的 index，原版任何實體都不會用到這麼大的 index。
+     * 這筆資料絕對不能送到客戶端，否則客戶端會因 ArrayIndexOutOfBoundsException 斷線（網路協定錯誤）。
+     */
+    public static final int MARK_INDEX = 99;
+
+    /**
+     * 從 metadata 列表中移除 FeatherMorph 的標記資料
+     * @return 是否有找到並移除標記
+     */
+    public static boolean stripMarker(List<EntityData<?>> data)
+    {
+        // 先用 int 比較做快速過濾，絕大多數封包不會進到 equals
+        return data.removeIf(entry -> entry.getIndex() == MARK_INDEX && MARK_DONT_PROCESS.equals(entry.getValue()));
+    }
+
     public static WrapperPlayServerEntityMetadata buildFullMetaPacket(Player player, SingleWatcher watcher)
     {
         watcher.sync();
@@ -51,7 +67,7 @@ public class PacketFactory extends MorphPluginObject
 
         // Add our packet identifier!
         if (!watcher.readEntryOrDefault(CustomEntries.DONT_INCLUDE_PACKET_IDENTIFIER, false))
-            wrappedDataValues.add(new EntityData<>(99, EntityDataTypes.STRING, MARK_DONT_PROCESS));
+            wrappedDataValues.add(new EntityData<>(MARK_INDEX, EntityDataTypes.STRING, MARK_DONT_PROCESS));
 
         var valuesToSent = watcher.getOverlayedRegistry();
         watcher.clearDirty();
