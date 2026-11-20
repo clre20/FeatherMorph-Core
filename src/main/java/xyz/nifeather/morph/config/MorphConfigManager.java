@@ -51,7 +51,7 @@ public class MorphConfigManager extends PluginConfigManager
         registerUpdateMethods();
     }
 
-    public static final int TARGET_VERSION = 49;
+    public static final int TARGET_VERSION = 50;
 
     @SuppressWarnings("removal")
     private void registerUpdateMethods()
@@ -177,6 +177,9 @@ public class MorphConfigManager extends PluginConfigManager
             //noinspection deprecation
             newConfig.set(ConfigOptions.CHECK_UPDATE.toString(), null);
         });
+
+        addUpdateMethod(50, newConfig ->
+                updateLogger.info("#50: Added 'player_disguise_nameplate' options."));
 
         addUpdateMethod(43, newConfig ->
         {

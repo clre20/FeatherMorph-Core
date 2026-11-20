@@ -86,6 +86,13 @@ public class ServerRenderer extends MorphPluginObject implements Listener
             {
                 if (w instanceof LivingEntityWatcher livingEntityWatcher)
                     livingEntityWatchers.add(livingEntityWatcher);
+
+                // 偽裝成玩家時，依權限決定是否在名牌上顯示「偽裝」標記
+                if (entityType == EntityType.PLAYER)
+                {
+                    w.writeEntry(CustomEntries.NAMEPLATE_MARKER,
+                            !player.hasPermission(xyz.nifeather.morph.backends.server.renderer.network.DisguiseNameplate.BYPASS_PERMISSION));
+                }
             });
         }
         catch (Exception e)
@@ -199,6 +206,7 @@ public class ServerRenderer extends MorphPluginObject implements Listener
     public void dispose()
     {
         registry.reset();
+        xyz.nifeather.morph.backends.server.renderer.network.DisguiseNameplate.clear();
         protocolHandler.dispose();
 
         PlayerInteractEvent.getHandlerList().unregister(this);

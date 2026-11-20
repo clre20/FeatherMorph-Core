@@ -19,6 +19,8 @@ FeatherMorph Core 是一款適用於 Paper、Purpur 與 Folia（Minecraft Java �
   * 型態、物理屬性、浮力、擊退、音效、接觸傷害與爆炸規則，全部即時讀取伺服器的原版型態定義與物品標籤，與原版及資料包一致。
   * 裝著方塊時與原版相同：不能爬上台階、可在水下呼吸、不會凍結，並對 `#minecraft:sulfur_cube_with_block_immune_to` 內的傷害免疫（可在設定檔關閉）。
 * **互動鏡像、聊天覆蓋與魔法瓶**等原有玩法皆保留。
+* **玩家偽裝標記**：
+  * 可選擇在偽裝成其他玩家時，名牌加上「偽裝」標記（上方 / 下方 / 名字後面），避免被拿來冒充其他玩家或管理員。
 * **自動檢查更新**：
   * 伺服器啟動時以非同步方式向 GitHub Releases 檢查一次，結果快取 10 分鐘，不做定時輪詢。
   * 有新版本時，具備 `feathermorph.version` 權限的管理員登入 3 秒後會收到提醒。
@@ -46,6 +48,7 @@ FeatherMorph Core 是一款適用於 Paper、Purpur 與 Folia（Minecraft Java �
 | `/fm query <玩家>` / `/fm queryall` | 查詢偽裝狀態 | 遊戲內 / 控制台 | `feathermorph.query` / `feathermorph.queryall` | OP |
 | `/fm lookup <玩家>` | 查詢玩家已解鎖的偽裝 | 遊戲內 / 控制台 | `feathermorph.lookup` | OP |
 | `/fm stat` | 顯示插件統計資訊 | 遊戲內 / 控制台 | `feathermorph.stat` | OP |
+| （權限） | 偽裝成玩家時名牌不顯示「偽裝」標記 | - | `feathermorph.nameplate.bypass` | 無人（含 OP） |
 
 > 指定生物的偽裝權限格式為 `feathermorph.morph.as.minecraft.<生物>`，例如 `feathermorph.morph.as.minecraft.sheep`。
 
@@ -74,6 +77,9 @@ FeatherMorph Core 是一款適用於 Paper、Purpur 與 Folia（Minecraft Java �
 | `update-checker.notify-on-join` | 有新版本時提醒登入的管理員 | `true` |
 | `sulfur_cube.vanilla_damage_immunity` | 裝著方塊時照原版免疫部分傷害 | `true` |
 | `sulfur_cube.tnt_breaks_blocks` | 爆炸型立方體是否破壞方塊（另需 `mobGriefing` 遊戲規則） | `false` |
+| `player_disguise_nameplate.enabled` | 偽裝成其他玩家時，名牌加上「偽裝」標記 | `false` |
+| `player_disguise_nameplate.position` | 標記位置：`above`（上方）、`below`（下方）、`suffix`（名字後面） | `suffix` |
+| `player_disguise_nameplate.text` | 標記文字，支援 MiniMessage | `<gray>(偽裝)</gray>` |
 
 ## 致謝
 
@@ -104,6 +110,8 @@ FeatherMorph Core is a server-side morph and disguise plugin for Paper, Purpur a
   * The block in your hand (off hand first, then main hand) is the block the cube has swallowed.
   * Archetypes, physics attributes, buoyancy, knockback, sounds, contact damage and explosions are all read live from the server's vanilla archetype registry and item tags, so they match vanilla and any data packs.
   * While holding a block it behaves like vanilla: no step-up, breathes underwater, cannot freeze, and is immune to damage in `#minecraft:sulfur_cube_with_block_immune_to` (can be turned off).
+* **Player disguise marker**:
+  * Optionally add a "disguised" marker (above / below / after the name) to the nameplate of player disguises, so they can't be used to impersonate other players or staff.
 * **Interaction Mirror, Chat Override and Magic Bottle** are kept as before.
 * **Update checker**:
   * Checks GitHub Releases asynchronously once on startup; results are cached for 10 minutes and there is no periodic polling.
@@ -132,6 +140,7 @@ The main command is `/feathermorph` (alias `/fm`).
 | `/fm query <player>` / `/fm queryall` | Check disguise states | In-game / Console | `feathermorph.query` / `feathermorph.queryall` | OP |
 | `/fm lookup <player>` | List a player's unlocked disguises | In-game / Console | `feathermorph.lookup` | OP |
 | `/fm stat` | Show plugin statistics | In-game / Console | `feathermorph.stat` | OP |
+| (permission) | Player disguises don't show the nameplate marker | - | `feathermorph.nameplate.bypass` | Nobody (incl. OP) |
 
 > Per-mob disguise permissions use `feathermorph.morph.as.minecraft.<mob>`, e.g. `feathermorph.morph.as.minecraft.sheep`.
 
@@ -160,6 +169,9 @@ These options live in `config.yml`. Missing options are filled in on startup and
 | `update-checker.notify-on-join` | Notify admins on join when an update is available | `true` |
 | `sulfur_cube.vanilla_damage_immunity` | Vanilla damage immunity while holding a block | `true` |
 | `sulfur_cube.tnt_breaks_blocks` | Whether an explosive cube breaks blocks (also requires the `mobGriefing` game rule) | `false` |
+| `player_disguise_nameplate.enabled` | Add a "disguised" marker to the nameplate of player disguises | `false` |
+| `player_disguise_nameplate.position` | Marker position: `above`, `below` or `suffix` | `suffix` |
+| `player_disguise_nameplate.text` | Marker text, MiniMessage supported | `<gray>(偽裝)</gray>` |
 
 ## Credits
 

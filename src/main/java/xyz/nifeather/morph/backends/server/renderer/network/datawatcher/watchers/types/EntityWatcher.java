@@ -94,6 +94,11 @@ public class EntityWatcher extends SingleWatcher
 
     public static final int PACKET_MARK = 10998;
 
+    /**
+     * 上次建立生成封包時（在實體執行緒上）讀到的乘客 ID
+     */
+    protected volatile int[] lastPassengerIds = new int[0];
+
     private List<PacketWrapper<?>> buildSpawnPacketsFor(Player player)
     {
         List<PacketWrapper<?>> packets = new ObjectArrayList<>();
@@ -140,15 +145,15 @@ public class EntityWatcher extends SingleWatcher
             packets.add(new WrapperPlayServerSetPassengers(player.getVehicle().getEntityId(), passengers));
         }
 
-        if (!player.getPassengers().isEmpty())
-        {
-            int[] passengers = player.getPassengers()
-                    .stream()
-                    .mapToInt(Entity::getEntityId)
-                    .toArray();
+        int[] passengers = player.getPassengers()
+                .stream()
+                .mapToInt(Entity::getEntityId)
+                .toArray();
 
+        this.lastPassengerIds = passengers;
+
+        if (passengers.length > 0)
             packets.add(new WrapperPlayServerSetPassengers(player.getEntityId(), passengers));
-        }
 
         // 属性交由 LivingEntityWatcher 添加
 

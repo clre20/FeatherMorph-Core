@@ -39,6 +39,11 @@ public class CustomEntries
     public static final CustomEntry<UUID> SPAWN_UUID = CustomEntry.of("spawn_uuid", Uuids.NIL_UUID);
     public static final CustomEntry<Integer> SPAWN_ID = CustomEntry.of("spawn_id", -1);
 
+    /**
+     * 玩家偽裝時是否在名牌上顯示「偽裝」標記（偽裝開始時依權限決定）
+     */
+    public static final CustomEntry<Boolean> NAMEPLATE_MARKER = CustomEntry.of("nameplate_marker", false);
+
     public static final CustomEntry<Boolean> VANISHED = CustomEntry.of("vanished", false);
 
     public static final CustomEntry<Boolean> WARDEN_VANISHED = CustomEntry.of("warden_vanished", false);

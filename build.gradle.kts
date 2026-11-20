@@ -250,7 +250,9 @@ paper {
 
             permissionRoot + "disguise_use_real_uuid",
 
-            permissionRoot + "mirror.mannequin"
+            permissionRoot + "mirror.mannequin",
+
+            permissionRoot + "nameplate.bypass"
     )
 
     defaultDenyPermissions.forEach {

@@ -460,4 +460,19 @@ public class ConfigOptions
             .node(ConfigNode.create().append("sulfur_cube").append("vanilla_damage_immunity"))
             .defaultValue(true)
             .build();
+
+    public static final ConfigOption<Boolean> NAMEPLATE_MARKER_ENABLED = ConfigOption.builder(Boolean.class)
+            .node(ConfigNode.create().append("player_disguise_nameplate").append("enabled"))
+            .defaultValue(false)
+            .build();
+
+    public static final ConfigOption<String> NAMEPLATE_MARKER_POSITION = ConfigOption.builder(String.class)
+            .node(ConfigNode.create().append("player_disguise_nameplate").append("position"))
+            .defaultValue("suffix")
+            .build();
+
+    public static final ConfigOption<String> NAMEPLATE_MARKER_TEXT = ConfigOption.builder(String.class)
+            .node(ConfigNode.create().append("player_disguise_nameplate").append("text"))
+            .defaultValue("<gray>(偽裝)</gray>")
+            .build();
 }
