@@ -151,6 +151,8 @@ dependencies {
     {
         exclude("com.google.code.gson", "gson")
     }
+
+    compileOnly("clre20:HttpHub:1.0.1")
 }
 
 group = "xyz.nifeather.morph"
@@ -197,6 +199,12 @@ paper {
         }
 
         register("PingWheelPluginForked") {
+            load = PaperPluginDescription.RelativeLoadOrder.BEFORE
+            required = false
+            joinClasspath = true
+        }
+
+        register("HttpHub") {
             load = PaperPluginDescription.RelativeLoadOrder.BEFORE
             required = false
             joinClasspath = true

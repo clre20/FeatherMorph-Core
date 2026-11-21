@@ -70,9 +70,15 @@ public class UpdateHandler extends MorphPluginObject
 
         Bukkit.getPluginManager().registerEvents(new JoinListener(), plugin);
 
-        // 啟動時檢查一次（非同步）
-        if (checkOnStartup.get())
+        // 啟動時檢查一次（若有 HttpHub 則由 HttpHub 集中處理，否則走內建非同步）
+        if (Bukkit.getPluginManager().isPluginEnabled("HttpHub") && clre20.httpHub.api.HttpHubAPI.isAvailable())
+        {
+            clre20.httpHub.api.HttpHubAPI.registerUpdateCheck(plugin, "clre20/FeatherMorph-Core", plugin.getPluginMeta().getVersion(), CommonPermissions.CHECK_UPDATE, null);
+        }
+        else if (checkOnStartup.get())
+        {
             this.checkUpdate(true, null);
+        }
     }
 
     private final class JoinListener implements Listener
@@ -80,6 +86,7 @@ public class UpdateHandler extends MorphPluginObject
         @EventHandler(priority = EventPriority.MONITOR)
         public void onJoin(PlayerJoinEvent event)
         {
+            if (Bukkit.getPluginManager().isPluginEnabled("HttpHub")) return;
             if (!notifyOnJoin.get()) return;
 
             var player = event.getPlayer();
@@ -161,6 +168,20 @@ public class UpdateHandler extends MorphPluginObject
         updateAvailable = false;
 
         var reqId = requestId.addAndGet(1);
+
+        if (Bukkit.getPluginManager().isPluginEnabled("HttpHub") && clre20.httpHub.api.HttpHubAPI.isAvailable())
+        {
+            try
+            {
+                String responseBody = clre20.httpHub.api.HttpHubAPI.getStringAsync(plugin, "https://api.github.com/repos/clre20/FeatherMorph-Core/releases").join();
+                return this.onUpdateReqFinish(responseBody, reqId, sendMessages, forwardTarget);
+            }
+            catch (Throwable t)
+            {
+                this.onUpdateReqFail(t, reqId);
+                return CheckResult.FAIL;
+            }
+        }
 
         HttpClient httpClient = null;
 

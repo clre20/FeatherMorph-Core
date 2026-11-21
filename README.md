@@ -21,8 +21,9 @@ FeatherMorph Core 是一款適用於 Paper、Purpur 與 Folia（Minecraft Java �
 * **互動鏡像、聊天覆蓋與魔法瓶**等原有玩法皆保留。
 * **玩家偽裝標記**：
   * 可選擇在偽裝成其他玩家時，名牌加上「偽裝」標記（上方 / 下方 / 名字後面），避免被拿來冒充其他玩家或管理員。
-* **自動檢查更新**：
-  * 伺服器啟動時以非同步方式向 GitHub Releases 檢查一次，結果快取 10 分鐘，不做定時輪詢。
+* **自動檢查更新（支援 HttpHub 集中處理）**：
+  * 若伺服器有安裝 [HttpHub](https://github.com/clre20/HttpHub)，自動向 HttpHub 登記集中更新檢查，由單例虛擬執行緒統一處理並由 HttpHub 自動於管理員登入 3 秒後通知，避免各插件自開連線；若無則走內建非同步檢查。
+  * 啟動時檢查一次，結果快取 10 分鐘，不做定時輪詢。
   * 有新版本時，具備 `feathermorph.version` 權限的管理員登入 3 秒後會收到提醒。
 
 ## 伺服器需求
@@ -113,7 +114,8 @@ FeatherMorph Core is a server-side morph and disguise plugin for Paper, Purpur a
 * **Player disguise marker**:
   * Optionally add a "disguised" marker (above / below / after the name) to the nameplate of player disguises, so they can't be used to impersonate other players or staff.
 * **Interaction Mirror, Chat Override and Magic Bottle** are kept as before.
-* **Update checker**:
+* **Update Checker & HttpHub Integration**:
+  * Automatically registers centralized update checking with [HttpHub](https://github.com/clre20/HttpHub) via virtual threads if installed, eliminating duplicate connections and background threads.
   * Checks GitHub Releases asynchronously once on startup; results are cached for 10 minutes and there is no periodic polling.
   * Admins with `feathermorph.version` are notified 3 seconds after joining when a new version is available.
 
