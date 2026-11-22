@@ -55,6 +55,19 @@ public class RenderRegistry extends MorphPluginObject
     //region Registry
 
     private final Map<UUID, SingleWatcher> watcherMap = new ConcurrentHashMap<>();
+    private final Map<Integer, SingleWatcher> entityIdWatcherMap = new ConcurrentHashMap<>();
+
+    // 墓碑快取（Tombstone）：記錄最近 10 秒內剛解除偽裝的 Watcher 與實體 ID
+    // 解決 Netty 異步隊列中殘留的原生 Player 元數據封包在 Watcher 已解除但客戶端舊實體尚未被銷毀時外流，
+    // 導致客戶端型態不符崩潰（例如終界龍收到玩家皮膚 Byte 127 崩潰）
+    private record Tombstone(SingleWatcher watcher, long expireTime) {}
+    private final Map<Integer, Tombstone> tombstoneMap = new ConcurrentHashMap<>();
+
+    private void cleanExpiredTombstones()
+    {
+        long now = System.currentTimeMillis();
+        tombstoneMap.entrySet().removeIf(entry -> entry.getValue().expireTime() < now);
+    }
 
     public List<SingleWatcher> getWatchers()
     {
@@ -83,21 +96,55 @@ public class RenderRegistry extends MorphPluginObject
     }
 
     /**
+     * 根據實體 ID 查找 Watcher（包含正常註冊與最近解除偽裝的墓碑）
+     * 支援 O(1) 映射與回退匹配，完全不依賴跨執行緒調用 Bukkit.getPlayer
+     */
+    @Nullable
+    public SingleWatcher findWatcherByEntityId(int entityId)
+    {
+        var watcher = entityIdWatcherMap.get(entityId);
+        if (watcher != null)
+            return watcher;
+
+        // 如果直接映射未命中，遍歷 watcherMap 進行回退匹配（防禦實體 ID 更新延遲）
+        for (var w : watcherMap.values())
+        {
+            if (w.readEntryOrDefault(CustomEntries.SPAWN_ID, -1) == entityId
+                    || (w.getBindingPlayer() != null && w.getBindingPlayer().getEntityId() == entityId))
+            {
+                entityIdWatcherMap.put(entityId, w);
+                return w;
+            }
+        }
+
+        cleanExpiredTombstones();
+        var tombstone = tombstoneMap.get(entityId);
+        if (tombstone != null && tombstone.expireTime() >= System.currentTimeMillis())
+            return tombstone.watcher();
+
+        return null;
+    }
+
+    /**
+     * 檢查指定實體 ID 是否處於已解除偽裝的墓碑過渡期
+     */
+    public boolean isTombstoned(int entityId)
+    {
+        var tombstone = tombstoneMap.get(entityId);
+        return tombstone != null && tombstone.expireTime() >= System.currentTimeMillis();
+    }
+
+    /**
      * 根据实体ID查找已注册伪装的在线玩家
-     * @apiNote 此方法会在网络线程中对几乎每个实体数据包调用，因此只遍历已伪装的玩家，而不是所有在线玩家
+     * @apiNote 此方法會在網絡線程中被頻繁調用，直接從 Watcher 取得 Player，不調用 Bukkit.getPlayer 避免執行緒安全問題
      * @return 匹配的玩家，如果此实体ID不属于任何已伪装的玩家则返回 null
      */
     @Nullable
     public Player findPlayerByEntityId(int entityId)
     {
-        if (watcherMap.isEmpty()) return null;
-
-        for (var uuid : watcherMap.keySet())
-        {
-            var player = Bukkit.getPlayer(uuid);
-            if (player != null && player.getEntityId() == entityId)
-                return player;
-        }
+        var watcher = findWatcherByEntityId(entityId);
+        if (watcher != null)
+            return watcher.getBindingPlayer();
 
         return null;
     }
@@ -117,6 +164,12 @@ public class RenderRegistry extends MorphPluginObject
     {
         var watcher = watcherMap.remove(uuid);
         if (watcher == null) return null;
+
+        int entityId = watcher.readEntryOrDefault(CustomEntries.SPAWN_ID, watcher.getBindingPlayer().getEntityId());
+        entityIdWatcherMap.remove(entityId);
+
+        // 移入墓碑快取，保留 10 秒供網絡線程過渡保護
+        tombstoneMap.put(entityId, new Tombstone(watcher, System.currentTimeMillis() + 10000L));
 
         callUnregister(Bukkit.getPlayer(uuid), watcher);
 
@@ -162,6 +215,9 @@ public class RenderRegistry extends MorphPluginObject
             throw new IllegalArgumentException("Watcher UUID doesn't match with player's UUID!");
 
         watcherMap.put(uuid, watcher);
+        int entityId = watcher.readEntryOrDefault(CustomEntries.SPAWN_ID, watcher.getBindingPlayer().getEntityId());
+        entityIdWatcherMap.put(entityId, watcher);
+        tombstoneMap.remove(entityId);
 
         watcher.setParentRegistry(this);
         callRegister(Bukkit.getPlayer(uuid), watcher);
@@ -176,6 +232,8 @@ public class RenderRegistry extends MorphPluginObject
         });
 
         watcherMap.clear();
+        entityIdWatcherMap.clear();
+        tombstoneMap.clear();
     }
 
     //endregion Registry
