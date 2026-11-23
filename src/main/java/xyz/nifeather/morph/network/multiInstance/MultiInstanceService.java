@@ -1,0 +1,158 @@
+package xyz.nifeather.morph.network.multiInstance;
+
+import org.jetbrains.annotations.Nullable;
+import xiamomc.pluginbase.Annotations.Initializer;
+import xiamomc.pluginbase.Annotations.Resolved;
+import xiamomc.pluginbase.Bindables.Bindable;
+import xyz.nifeather.morph.MorphManager;
+import xyz.nifeather.morph.MorphPluginObject;
+import xyz.nifeather.morph.config.ConfigOptions;
+import xyz.nifeather.morph.config.MorphConfigManager;
+import xyz.nifeather.morph.network.multiInstance.master.MasterInstance;
+import xyz.nifeather.morph.network.multiInstance.protocol.Operation;
+import xyz.nifeather.morph.network.multiInstance.protocol.SocketPlayerMeta;
+import xyz.nifeather.morph.network.multiInstance.protocol.c2s.MIC2SSyncDisguiseCommand;
+import xyz.nifeather.morph.network.multiInstance.protocol.s2c.MIS2CUpdateMetaCommand;
+import xyz.nifeather.morph.network.multiInstance.slave.SlaveInstance;
+
+import java.util.Arrays;
+import java.util.UUID;
+
+public class MultiInstanceService extends MorphPluginObject
+{
+    @Nullable
+    private MasterInstance masterInstance;
+
+    @Nullable
+    public MasterInstance masterInstance()
+    {
+        return masterInstance;
+    }
+
+    @Nullable
+    private SlaveInstance slaveInstance;
+
+    @Nullable
+    public SlaveInstance slaveInstance()
+    {
+        return slaveInstance;
+    }
+
+    private void checkSanity()
+    {
+        if (masterInstance == null && slaveInstance == null)
+            throw new IllegalStateException("None of master or slave instance is present!");
+
+        if (isMaster.get() && masterInstance == null)
+            throw new IllegalStateException("We are the master server, but the server instance is null?!");
+
+        if (!isMaster.get() && slaveInstance == null)
+            throw new IllegalStateException("We are the client, but the client instance is null?!");
+    }
+
+    private void prepareInstance(boolean isMaster)
+    {
+        logger.info("Preparing socket instance...");
+
+        if (!stopAll())
+        {
+            logger.warn("Can't stop instance, not continuing...");
+
+            masterInstance = null;
+            slaveInstance = null;
+
+            return;
+        }
+
+        masterInstance = null;
+        slaveInstance = null;
+
+        if (isMaster)
+            masterInstance = new MasterInstance();
+        else
+            slaveInstance = new SlaveInstance(true);
+    }
+
+    @Resolved
+    private MorphManager manager;
+
+    private final Bindable<Boolean> isMaster = new Bindable<>(false);
+    private final Bindable<Boolean> enabled = new Bindable<>(false);
+
+    @Initializer
+    private void load(MorphConfigManager configManager)
+    {
+        configManager.bind(enabled, ConfigOptions.ENABLE_MULTIINSTANCE);
+        configManager.bind(isMaster, ConfigOptions.IS_MASTER);
+
+        isMaster.onValueChanged((o, n) ->
+        {
+            if (enabled.get())
+                prepareInstance(n);
+        }, true);
+    }
+
+    public void onDisable()
+    {
+        stopAll();
+    }
+
+    public void notifyDisguiseMetaChange(UUID uuid, Operation operation, String... identifiers)
+    {
+        if (!enabled.get()) return;
+
+        // Don't ask, its intended.
+        try
+        {
+            checkSanity();
+        }
+        catch (Throwable t)
+        {
+            logger.error("Sanity check failed", t);
+            return;
+        }
+
+        var meta = new SocketPlayerMeta(operation, Arrays.stream(identifiers).toList(), uuid);
+
+        if (isMaster.get())
+        {
+            assert masterInstance != null;
+            masterInstance.broadcastCommand(new MIS2CUpdateMetaCommand(meta));
+        }
+        else
+        {
+            assert slaveInstance != null;
+
+            if (slaveInstance.isOnline())
+                slaveInstance.sendCommand(new MIC2SSyncDisguiseCommand(meta));
+        }
+    }
+
+    public void onReload()
+    {
+        stopAll();
+
+        if (enabled.get())
+        {
+            this.addSchedule(() -> prepareInstance(isMaster.get()), 20);
+        }
+        else
+        {
+            if (slaveInstance != null)
+                slaveInstance.resetDataStore();
+        }
+    }
+
+    private boolean stopAll()
+    {
+        boolean success = true;
+
+        if (slaveInstance != null)
+            success = slaveInstance.stop();
+
+        if (masterInstance != null)
+            success = masterInstance.stop() && success;
+
+        return success;
+    }
+}

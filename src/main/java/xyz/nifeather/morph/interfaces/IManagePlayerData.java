@@ -1,0 +1,73 @@
+package xyz.nifeather.morph.interfaces;
+
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import xyz.nifeather.morph.misc.DisguiseMeta;
+import xyz.nifeather.morph.storage.playerdata.PlayerMeta;
+
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+public interface IManagePlayerData
+{
+    /**
+     * 获取伪装信息
+     *
+     * @param rawString 原始ID
+     * @return 伪装信息
+     * @apiNote 如果原始ID不是有效ID，则会返回null
+     */
+    @Nullable
+    public DisguiseMeta getDisguiseMeta(String rawString);
+
+    /**
+     * 获取某一玩家所有可用的伪装
+     * @param player 目标玩家
+     * @return 目标玩家拥有的伪装
+     */
+    public List<DisguiseMeta> getAvailableDisguisesFor(Player player);
+
+    /**
+     * Load the requested data async
+     * @param uuid The target player's UUID
+     * @return The matching {@link PlayerMeta}
+     * @apiNote The future throws {@link xiamomc.pluginbase.Exceptions.NullDependencyException} If data for the requested UUID cannot be found.
+     */
+    CompletableFuture<PlayerMeta> loadPlayerDataAsync(UUID uuid);
+
+    /**
+     * 将伪装授予某一玩家
+     * @param player 要授予的玩家
+     * @param disguiseIdentifier 伪装ID
+     * @return 添加是否成功（伪装是否可用或玩家是否已经拥有目标伪装）
+     */
+    public boolean grantMorphToPlayer(Player player, String disguiseIdentifier);
+
+    /**
+     * 从某一玩家剥离伪装
+     * @param player 要授予的玩家
+     * @param disguiseIdentifier 伪装ID
+     * @return 添加是否成功（伪装是否可用或玩家是否已经拥有目标伪装）
+     */
+    public boolean revokeMorphFromPlayer(Player player, String disguiseIdentifier);
+
+    /**
+     * 获取玩家的伪装配置
+     *
+     * @param player 目标玩家
+     * @return 伪装信息
+     */
+    @NotNull
+    public PlayerMeta getPlayerMeta(OfflinePlayer player);
+
+    public boolean reload();
+
+    public boolean save();
+
+    @ApiStatus.Internal
+    List<PlayerMeta> getRange(List<UUID> list);
+}

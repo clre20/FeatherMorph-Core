@@ -1,0 +1,29 @@
+package xyz.nifeather.morph.events;
+
+import io.papermc.paper.event.player.PlayerArmSwingEvent;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import xiamomc.pluginbase.Annotations.Resolved;
+import xyz.nifeather.morph.MorphManager;
+import xyz.nifeather.morph.MorphPluginObject;
+
+public class DisguiseAnimationProcessor extends MorphPluginObject implements Listener
+{
+    @Resolved(shouldSolveImmediately = true)
+    private PlayerTracker tracker;
+
+    @Resolved(shouldSolveImmediately = true)
+    private MorphManager morphManager;
+
+    @EventHandler
+    public void onPlaySwing(PlayerArmSwingEvent e)
+    {
+        var player = e.getPlayer();
+        if (!tracker.interactingThisTick(player))
+            return;
+
+        var state = morphManager.getDisguiseStateFor(player);
+        if (state != null)
+            state.getDisguiseWrapper().playAttackAnimation();
+    }
+}
